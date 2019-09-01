@@ -21,10 +21,12 @@ class Context(object):
         self.loop = None
 
 
-    # # Queue action
-    # def queue_action(self, actor, action, *args, **kwargs):
-    #     logger.info('Queing external command %s', actor)
-    #     self.actions.append((actor, action, args, kwargs))
+    # Get actor
+    def get_actor(self, alias):
+        for actor in self.actors:
+            if actor.alias == alias:
+                return actor
+                
 
     # Queue event
     def queue_event(self, source, name, payload={}):

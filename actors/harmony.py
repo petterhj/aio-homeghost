@@ -7,7 +7,7 @@ import aioharmony.exceptions as aioexc
 from aioharmony.harmonyapi import HarmonyAPI, SendCommandDevice
 from aioharmony.harmonyapi import ClientCallbackType
 
-from . import AbstractActor
+from .actor import AbstractActor
 
 
 logger = logging.getLogger('homeghost.' + __name__)
@@ -104,15 +104,40 @@ class HarmonyActor(AbstractActor):
     # Class: Actions
     class Actions(AbstractActor.Actions):
         # async def off(self):
+        '''
         def off(self):
             logger.info('%s: Turn off', self.actor.alias)
 
             try:
-                # await self.client.power_off()
-                self.actor.client.power_off()
+                await self.client.power_off()
+                # self.actor.client.power_off()
         
             except aioexc.TimeOut:
                 logger.exception('%s: Powering off timed-out', self.actor.alias)
                 return False, 'Powering off timed-out'
             
             return True, 'Powered off harmony devices'
+        '''
+
+
+        # Send
+        async def send(self, device, command, delay=0):
+            # logger.info('%s: Turn off', self.actor.alias)
+
+            try:
+                cmd = SendCommandDevice(device, command, delay)
+
+                await self.actor.client.send_commands(cmd)
+                # self.actor.client.power_off()
+            
+            except aioexc.TimeOut:
+                return self.actor.annouce(False, 'Command send timed out' % (
+                    command, device
+                ))
+                
+            except:
+                logger.exception('!!!!!!!'*100)
+
+            return True, 'Command %s sent to device %d' % (
+                command, device
+            )

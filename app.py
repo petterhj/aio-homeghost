@@ -28,10 +28,10 @@ config = {
         #     # ('tellstick', 'off', 104),
         # ]},
         {'events': ['web.on'], 'actions': [
-            ('tellstick', 'on', 101),
-            ('tellstick', 'on', 102),
+            # ('tellstick', 'on', 101),
+            # ('tellstick', 'on', 102),
             ('tellstick', 'on', 103),
-            ('tellstick', 'on', 104),
+            # ('tellstick', 'on', 104),
         ]},
         {'events': ['web.dim'], 'actions': [
             # ('tellstick', 'dim', 101),
@@ -58,7 +58,7 @@ config = {
             # ('tellstick', 'off', 201),
             # ('tellstick', 'off', 202),
             # ('tellstick', 'off', 203),
-            ('harmony', 'send'),
+            ('harmony', 'send', 45627582, 'Play'),
         ]},
     ]
 }

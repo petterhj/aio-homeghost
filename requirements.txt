@@ -1,0 +1,5 @@
+uuid
+python-socketio
+aioreloader
+aioharmony
+tellcore-py

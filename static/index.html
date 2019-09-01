@@ -24,13 +24,13 @@ var r,n,o,i=String.fromCharCode;function s(t){for(var e,r,n=[],o=0,i=t.length;o<
     * { box-sizing: border-box; }
     html, body { height: 100%; margin: 0; }
     div#app {
-        background: #e91e63;
+        background: #20304B;
         padding: 10px; height: 100%; 
         display: grid; 
-        grid-template-columns: 1fr 1fr; 
+        grid-template-columns: 200px 1fr; 
         grid-column-gap: 10px;
     }
-    div#app.connected { background: #4caf50; }
+    /*div#app.connected { background: #4caf50; }*/
     div#app > div.buttons {
         display: grid; 
         grid-template-rows: 1fr 1fr 1fr; 
@@ -45,6 +45,7 @@ var r,n,o,i=String.fromCharCode;function s(t){for(var e,r,n=[],o=0,i=t.length;o<
         border-radius: 2px; 
         color: rgba(255, 255, 255, 0.6);
     }
+    div#app > div.log > div.dim { opacity: 0.5; }
     button { 
         width: 100%; display: block; cursor: pointer;
         background: rgba(0, 0, 0, 0.5); 
@@ -63,7 +64,14 @@ var r,n,o,i=String.fromCharCode;function s(t){for(var e,r,n=[],o=0,i=t.length;o<
     <button @click="off()">OFF</button>
    </div>
    <div class="log">
-    <div v-for="item in results">{{item.message}}</div>
+    <div v-for="event in events" :class="{dim: event.actions.length == 0}">
+     <b>{{event.source}}.{{event.name}} [{{event.actions.length}}]</b>
+     <div v-for="action in event.actions">
+      * <b>{{action.actor}}.{{action.method}}({{action.args}})</b><br>
+      - {{action.uuid}}<br>
+      - {{action.executed}}, {{action.success}}, {{action.message}}
+     </div>
+    </div>
    </div>
   </div>
 
@@ -79,7 +87,7 @@ var r,n,o,i=String.fromCharCode;function s(t){for(var e,r,n=[],o=0,i=t.length;o<
         // delimiters: ['[[', ']]'],
         data: {
             is_connected: false,
-            results: [],
+            events: [],
         },
         created() {},
         mounted: function() {
@@ -115,16 +123,25 @@ var r,n,o,i=String.fromCharCode;function s(t){for(var e,r,n=[],o=0,i=t.length;o<
                 this.$socket.emit('pingtest', {hey: true});
                 this.is_connected = true;
             },
-            // pong: function() {
-            //     console.log('PONG');
-            // },
             event: function(data) {
+                console.log('------EVNT-----------------------------------:');
 				console.log(data);
+                console.log(data.actions);
+                this.events.unshift(data);
             },
-            message: function(data) {
-                // this.results.push(data);
-                console.log(data);
-                this.results.unshift(data);
+            result: function(result) {
+                console.log('------RSLT-----------------------------------:');
+                console.log(result);
+
+                this.events.forEach(function(event) {
+                    event.actions.forEach(function(action) {
+                        if (action.uuid === result.uuid) {
+                            action.executed = result.executed;
+                            action.success = result.success;
+                            action.message = result.message;
+                        }
+                    });
+                });
             },
             disconnect: function() {
                 console.log('DISCONNECTED');

@@ -5,7 +5,7 @@ import logging
 from tellcore.telldus import TelldusCore, AsyncioCallbackDispatcher
 import tellcore.constants as const
 
-from . import AbstractActor
+from .actor import AbstractActor
 
 
 logger = logging.getLogger('homeghost.' + __name__)
@@ -193,6 +193,8 @@ class TellstickActor(AbstractActor):
                 return False, 'Unknown device'
             device.dim(level)
             return True, 'Device "%s" dimmed to level %d' % (device.name, level)
+
+
 
         
         # def all_on(self):

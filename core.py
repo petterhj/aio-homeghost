@@ -3,9 +3,10 @@ import asyncio
 import logging
 import functools
 
-from .context import Context
-from .http_server import HttpServer
-from .socket_server import sio
+from context import Context
+from http_server import HttpServer
+from socket_server import sio
+from action import Action, AsyncAction
 
 
 # Logger
@@ -71,8 +72,8 @@ class Core(object):
             # Stop event loop
             self.running = False
 
-            for actor in self.context.actors:
-                self.do_async(actor.stop)
+            # for actor in self.context.actors:
+            #     self.do_async(actor.stop)
             
             asyncio.wait(self.futures, loop=self.loop)
 
@@ -82,37 +83,45 @@ class Core(object):
     # Events processor
     async def events_processor(self):
         while self.running:
-            if self.context.events:
-                source, name, payload = self.context.events.popleft()
+            if not self.context.events:
+                await asyncio.sleep(0.01)
+                continue
 
-                logger.info('Event received: %s.%s, %s' % (source, name, str(payload)))
+            # Process event
+            source, name, payload = self.context.events.popleft()
 
-                # Actions
-                actions = [
-                    a for m in self.context.macros if '%s.%s' % (source, name) 
-                        in m['events'] for a in m['actions']
-                ]
+            logger.info('Event received: %s.%s, %s' % (source, name, str(payload)))
 
-                await self.context.socket_server.emit('event', {
-                    'source': source,
-                    'name': name,
-                    'payload': payload,
-                    'actions': len(actions),
-                })
+            # Actions
+            actions = []
 
-                if len(actions) == 0:
-                    # logger.info('No actions found for event %s.%s' % (source, name))
-                    continue
+            for action in [
+                a for m in self.context.macros if '%s.%s' % (source, name) 
+                    in m['events'] for a in m['actions']]:
 
-                logger.info('Executing %d actions for event %s.%s' % (len(actions), source, name))
-                
-                # Execute actions
-                for action in actions:
-                    for actor in self.context.actors:
-                        if actor.alias == action[0]:
-                            self.do_async(actor.execute, action[1], *action[2:])
+                actor = self.context.get_actor(action[0])
+                method = actor.get_method(action[1])
+                args = action[2:]
+                action_type = AsyncAction if asyncio.iscoroutinefunction(method) else Action
 
-            await asyncio.sleep(0.01)
+                actions.append(action_type(actor, method, args))
+
+            # Emit event
+            await self.context.socket_server.emit('event', {
+                'source': source,
+                'name': name,
+                'payload': payload,
+                'actions': [a.dict() for a in actions],
+            })
+
+            if len(actions) == 0:
+                continue
+
+            logger.info('Executing %d actions for event %s.%s' % (len(actions), source, name))
+            
+            # Execute actions
+            for action in actions:
+                action.execute()
 
 
     # Results processor
@@ -121,18 +130,17 @@ class Core(object):
             if self.context.results:
                 result = self.context.results.popleft()
 
-                await self.context.socket_server.emit('message', result)
+                await self.context.socket_server.emit('result', result)
 
             await asyncio.sleep(0.01)
 
 
     # Do async
-    def do_async(self, fn, method, *args):
-        logger.info('Doing %s%s async via %s' % (method, str(args), str(fn)))
-        
-        if asyncio.iscoroutinefunction(fn):
-            print('ensure_future', '-'*50)
-            asyncio.ensure_future(fn(method, *args), loop=self.loop)
+    def do_async(self, method, *args):
+        if asyncio.iscoroutinefunction(method):
+            print('-'*50, 'create_task', '-'*50)
+            print(method)
+            self.loop.create_task(method(*args))
         else:
-            print('call_soon', '-'*50)
-            self.loop.call_soon(functools.partial(fn, method, *args))
+            print('-'*50, 'call_soon', '-'*50)
+            self.loop.call_soon(functools.partial(method, *args))
