@@ -1,15 +1,10 @@
 # Imports
-import logging
 import aioreloader
 
+from logger import logger
 from core import Core
 from actors.tellstick import TellstickActor
 from actors.harmony import HarmonyActor
-
-
-# Logging
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger('homeghost.' + __name__)
 
 
 # Config
@@ -17,7 +12,7 @@ config = {
     'server': {'host': '0.0.0.0', 'port': 8880},
     'actors': [
         {'class': TellstickActor, 'alias': 'tellstick'},
-        {'class': HarmonyActor, 'alias': 'harmony', 'host': '192.168.1.6'},
+        {'class': HarmonyActor, 'alias': 'harmony', 'config': {'host': '192.168.1.6'}},
         # {'actor': KodiActor, 'alias': 'stue', 'host': '192.168.1.4', 'port': 1234}
     ],
     'macros': [
@@ -42,13 +37,14 @@ config = {
         ]},
 
         {'events': ['tellstick.on.button'], 'actions': [
-            ('tellstick', 'on', 203),
-            ('tellstick', 'on', 202),
-            ('tellstick', 'on', 201),
-            ('tellstick', 'on', 101),
-            ('tellstick', 'on', 102),
+            # ('tellstick', 'on', 203),
+            # ('tellstick', 'on', 202),
+            # ('tellstick', 'on', 201),
+            # ('tellstick', 'on', 101),
+            # ('tellstick', 'on', 102),
             ('tellstick', 'on', 103),
-            ('tellstick', 'on', 104),
+            # ('tellstick', 'on', 104),
+            ('harmony', 'start_activity', 27000842),
         ]},
         {'events': ['tellstick.off.button', 'web.off'], 'actions': [
             # ('tellstick', 'off', 101),
@@ -58,7 +54,7 @@ config = {
             # ('tellstick', 'off', 201),
             # ('tellstick', 'off', 202),
             # ('tellstick', 'off', 203),
-            ('harmony', 'send', 45627582, 'Play'),
+            ('harmony', 'command', 45627582, 'Play'),
         ]},
     ]
 }

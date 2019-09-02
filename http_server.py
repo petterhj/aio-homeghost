@@ -1,12 +1,13 @@
 import os
 import json
-import logging
 
 from aiohttp import web
 
+from logger import logger
 
-BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-logger = logging.getLogger('homeghost.' + __name__)
+
+# BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+# logger = logging.getLogger('homeghost.' + __name__)
 
 
 
@@ -39,6 +40,8 @@ class HttpServer(web.Application):
             web.get('/status/', self.status),
         ])
 
+        self.router.add_static('/static', './static')
+
 
         # Handler
         # --------------------
@@ -62,7 +65,15 @@ class HttpServer(web.Application):
     # Route: Status
     async def status(self, request):
         status = {
-            'actors': [actor.alias for actor in self.context.actors]
+            'actors': [{
+                'actor': actor.__class__.__name__,
+                'alias': actor.alias,
+                'config': actor.config,
+                'state': actor.state,
+            } for actor in self.context.actors],
+            'backlog': self.context.backlog,
+            'macros': self.context.macros,
         }
+
         headers = {'Content-Type': 'application/json'}
         return web.Response(body=json.dumps(status).encode('UTF-8'), headers=headers)

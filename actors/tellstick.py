@@ -1,14 +1,14 @@
 # Imports
 import asyncio
-import logging
 
 from tellcore.telldus import TelldusCore, AsyncioCallbackDispatcher
 import tellcore.constants as const
 
-from .actor import AbstractActor
+from logger import logger
+from actor import AbstractActor
 
 
-logger = logging.getLogger('homeghost.' + __name__)
+# logger = logging.getLogger('homeghost.' + __name__)
 
 
 
@@ -78,6 +78,9 @@ class TellstickActor(AbstractActor):
         # self.telldus.register_sensor_event(self.sensor_event)
         # self.telldus.register_controller_event(self.controller_event)
 
+        # State
+        self.state['label'] = '%d devices' % (len(self.devices))
+
 
     # Loop
     async def loop(self):
@@ -100,7 +103,7 @@ class TellstickActor(AbstractActor):
         devices = self.telldus.devices()
 
         for d in devices:
-            logger.debug('> Device: {0}, {1}, {2}, {3}, {4}'.format(d.id, d.name, d.protocol, d.type, d.model))
+            logger.info('> Device: {0}, {1}, {2}, {3}, {4}'.format(d.id, d.name, d.protocol, d.type, d.model))
 
         return {device.id: device for device in devices}
 
@@ -141,8 +144,10 @@ class TellstickActor(AbstractActor):
                 string += " [{0}]".format(type_string)
             logger.debug(string)
 
+
+        # Raw event
         def raw_event(self, data, controller_id, cid):
-            logger.debug('Raw event: {0} <- {1}'.format(controller_id, data))
+            logger.debug('Raw[%s]:%s' % (str(controller_id), data))
 
 
         '''

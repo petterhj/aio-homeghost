@@ -1,6 +1,8 @@
 # Imports
 import socketio
 
+from logger import logger
+
 
 # Server
 sio = socketio.AsyncServer(async_mode='aiohttp')

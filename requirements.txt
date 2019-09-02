@@ -1,4 +1,5 @@
 uuid
+loguru
 python-socketio
 aioreloader
 aioharmony

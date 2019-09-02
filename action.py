@@ -1,5 +1,6 @@
 # Imports
 import uuid
+import time
 import logging
 import asyncio
 import functools
@@ -22,7 +23,9 @@ class Action:
         self.method = method
         self.args = args
 
-        self.executed = False
+        self.created_timestamp = int(time.time())
+        self.queued_timestamp = None
+        self.completed_timestamp = None
         self.success = None
         self.message = None
 
@@ -30,14 +33,14 @@ class Action:
     # Wrapper
     def wrapper(self):
         self.success, self.message = self.method(*self.args)
-        self.executed = True
+        self.completed_timestamp = int(time.time())
         self.context.results.append(self.dict())
 
 
     # Execute
     def execute(self):
-        print('-'*50, 'call_soon', '-'*50)
-        # self.context.loop.call_soon(functools.partial(self.method, *self.args))
+        self.queued_timestamp = int(time.time())
+        logger.debug('Non-coroutine function, using call_soon')
         self.context.loop.call_soon(self.wrapper)
 
 
@@ -48,7 +51,9 @@ class Action:
             'method': self.method.__name__,
             'args': self.args,
             'uuid': self.uuid,
-            'executed': self.executed,
+            'created_timestamp': self.created_timestamp,
+            'queued_timestamp': self.queued_timestamp,
+            'completed_timestamp': self.completed_timestamp,
             'success': self.success,
             'message': self.message,
         }
@@ -68,12 +73,11 @@ class AsyncAction(Action):
     # Wrapper
     async def wrapper(self):
         self.success, self.message = await self.method(*self.args)
-        self.executed = True
+        self.completed_timestamp = time.time()
         self.context.results.append(self.dict())
 
 
     # Execute
     def execute(self):
-        print('-'*50, 'create_task', '-'*50)
-        # self.context.loop.create_task(self.method(*self.args))
+        logger.debug('Coroutine function, using create_task')
         self.context.loop.create_task(self.wrapper())

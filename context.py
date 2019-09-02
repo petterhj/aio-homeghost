@@ -15,6 +15,7 @@ class Context(object):
         self.actors = []
         self.events = collections.deque()
         self.results = collections.deque()
+        self.backlog = []
         # self.actions = collections.deque()
         self.http_server = None
         self.socket_server = None

@@ -1,17 +1,14 @@
 # Imports
+import time
 import asyncio
-import logging
 import functools
+from logger import logger
 
 from context import Context
 from http_server import HttpServer
 from socket_server import sio
+from actor import AbstractActor
 from action import Action, AsyncAction
-
-
-# Logger
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger('homeghost.' + __name__)
 
 
 
@@ -21,6 +18,7 @@ class Core(object):
     def __init__(self, config):
         ''' Initialize and configure homeghost core. '''
 
+        logger.info('-'*50)
         logger.info('Initializing...')
 
         # Context
@@ -48,9 +46,8 @@ class Core(object):
         ))
 
         # Actions processor
-        # self.futures.append(asyncio.ensure_future(self.actions_processor()))
         self.futures.append(asyncio.ensure_future(self.events_processor()))
-        self.futures.append(asyncio.ensure_future(self.results_processor()))
+        # self.futures.append(asyncio.ensure_future(self.results_processor()))
 
         # Actors
         for actor in self.context.actors:
@@ -64,9 +61,14 @@ class Core(object):
             server = self.context.http_server.configure(self.context)
             asyncio.ensure_future(server, loop=self.loop)
 
+            # Startup event
+            self.context.queue_event('homeghost', 'startup', payload={})
+
             # Run the event loop
+            logger.info('Running core event loop')
             self.running = True
             self.loop.run_forever()
+
 
         finally:
             # Stop event loop
@@ -83,50 +85,51 @@ class Core(object):
     # Events processor
     async def events_processor(self):
         while self.running:
-            if not self.context.events:
-                await asyncio.sleep(0.01)
-                continue
+        	# Process events
+            if self.context.events:
+	            # Process event
+	            source, name, payload = self.context.events.popleft()
 
-            # Process event
-            source, name, payload = self.context.events.popleft()
+	            logger.info('Event received: %s.%s, %s' % (source, name, str(payload)))
 
-            logger.info('Event received: %s.%s, %s' % (source, name, str(payload)))
+	            # Actions
+	            actions = []
 
-            # Actions
-            actions = []
+	            for action in [
+	                a for m in self.context.macros if '%s.%s' % (source, name) 
+	                    in m['events'] for a in m['actions']]:
 
-            for action in [
-                a for m in self.context.macros if '%s.%s' % (source, name) 
-                    in m['events'] for a in m['actions']]:
+	                actor = self.context.get_actor(action[0])
+	                method = actor.get_method(action[1])
+	                args = action[2:]
+	                action_type = AsyncAction if asyncio.iscoroutinefunction(method) else Action
 
-                actor = self.context.get_actor(action[0])
-                method = actor.get_method(action[1])
-                args = action[2:]
-                action_type = AsyncAction if asyncio.iscoroutinefunction(method) else Action
+	                actions.append(action_type(actor, method, args))
 
-                actions.append(action_type(actor, method, args))
+	            # Event
+	            event = {
+	                'source': source,
+	                'name': name,
+	                'payload': payload,
+	                'actions': [a.dict() for a in actions],
+	                'fired_timestamp': int(time.time()),
+	            }
 
-            # Emit event
-            await self.context.socket_server.emit('event', {
-                'source': source,
-                'name': name,
-                'payload': payload,
-                'actions': [a.dict() for a in actions],
-            })
+	            # Emit event
+	            await self.context.socket_server.emit('event', event)
 
-            if len(actions) == 0:
-                continue
+	            self.context.backlog.append(event)
 
-            logger.info('Executing %d actions for event %s.%s' % (len(actions), source, name))
-            
-            # Execute actions
-            for action in actions:
-                action.execute()
+	            if len(actions) == 0:
+	                continue
 
+	            logger.info('Executing %d actions for event %s.%s' % (len(actions), source, name))
+	            
+	            # Execute actions
+	            for action in actions:
+	                action.execute()
 
-    # Results processor
-    async def results_processor(self):
-        while self.running:
+        	# Process results
             if self.context.results:
                 result = self.context.results.popleft()
 
@@ -135,12 +138,25 @@ class Core(object):
             await asyncio.sleep(0.01)
 
 
+    # Results processor
+    '''
+    async def results_processor(self):
+        while self.running:
+            # if self.context.results:
+            #     result = self.context.results.popleft()
+
+            #     await self.context.socket_server.emit('result', result)
+            # pass
+
+            await asyncio.sleep(0.01)
+    '''
+
+
     # Do async
     def do_async(self, method, *args):
         if asyncio.iscoroutinefunction(method):
-            print('-'*50, 'create_task', '-'*50)
-            print(method)
+            logger.debug('Coroutine function, using create_task')
             self.loop.create_task(method(*args))
         else:
-            print('-'*50, 'call_soon', '-'*50)
+            logger.debug('Non-coroutine function, using call_soon')
             self.loop.call_soon(functools.partial(method, *args))
