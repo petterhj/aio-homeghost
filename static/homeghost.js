@@ -1,152 +1,59 @@
-Vue.use(new VueSocketIO({
-    debug: false,
-    connection: 'http://192.168.1.15:8880'
-}));
-Vue.use(Vuebar);
+// Vue.use(Vuex);
+// Vue.use(Vuebar);
 Vue.use(vueMoment);
 
 
-Vue.component('actors', {
-    props: ["item"],
-    data() {
-        return {
-            isOpen: false,
-            active: false,
-            navList: [
-                {
-                    url: "#",
-                    name: 'harmony',
-                    label: 'Listen Chromecast',
-                    children: [
-                        {
-                            url: "https://twitter.com/andrejsharapov",
-                            name: "Twitter",
-                            target: "_blank"
-                        }, {
-                            url: "https://dribbble.com/andrejsharapov",
-                            name: "Dribbble",
-                            target: "_blank"
-                        },
-                    ]
-                },
-                {
-                    url: "#",
-                    name: 'tellstick',
-                    label: '9 devices',
-                }
-            ]
-        };
-    },
-    template: `
-        <ul>
-         <li v-for="item in navList">
-          <template v-if="item.children">
-           <div class="actor" @click="isOpen = !isOpen, active = !active" :class="{ active }">
-            <h1>{{item.name}}</h1>
-            {{item.label}}
-           </div>
-           <div :class="{ isOpen }" class="dropdown">
-            <ul>
-             <li v-for="{ url, name, index, target } in item.children" :key="index">
-              <a target="target">{{ name }}</a>
-             </li>
-            </ul>
-           </div>
-          </template>
-          <template v-else>
-           <div class="actor">
-            <h1>{{item.name}}</h1>
-            {{item.label}}
-           </div>
-          </template>
-         </li>
-        </ul>`
+const socket = io('http://{0}:{1}/'.format(document.domain, '8880'), { 
+    autoConnect: true
 });
 
 
-
-
-var app = new Vue({
-    el: '#app',
-    // delimiters: ['[[', ']]'],
-    data: {
+// ====== Store ================================================================
+const store = new Vuex.Store({
+    state: {
         is_connected: false,
-        actors: [],
+        // status: {},
         events: [],
+        actors: [],
     },
-    created() {},
-    mounted: function() {
-        console.log(this.$socket)
-        // this.$socket.connect();
-        // 
-        // this.$socket.emit('', {});
-    },
-    methods: {
-        on: function() {
-            this.$socket.emit('event', {
-                source: 'web',
-                name: 'on'
+    mutations: {
+        SOCKET_CONNECT: (state) => {
+            console.log('Connected to socket server');
+            state.is_connected = true;
+            state.socked_id = socket.id;
+        },
+        SOCKET_CONNECT_ERROR(state, test) {
+            console.log('Could not connect to socket server');
+            state.is_connected = false;
+            state.socked_id = null;
+        },
+        SOCKET_DISCONNECT(state) {
+            console.log('Disconnected from socket server');
+            state.is_connected = false;
+            state.socked_id = null;
+        },
+        SOCKET_STATUS: (state, data) => {
+            console.log('Server status received');
+            // state.status = 
+
+            // Actors
+            state.actors = data.actors;
+
+            // Event backlog
+            state.events = [];
+            
+            data.backlog.forEach(function(event) {
+                state.events.unshift(event);
             });
         },
-        off: function() {
-            this.$socket.emit('event', {
-                source: 'web',
-                name: 'off'
-            });
+        SOCKET_EVENT: (state, event) => {
+            console.log('event')
+            // Add event
+            state.events.unshift(event);
         },
-        dim: function() {
-            this.$socket.emit('event', {
-                source: 'web',
-                name: 'dim'
-            });
-        },
-        toggle_connection: function() {
-            if (this.is_connected) {
-                this.$socket.disconnect();
-            } else {
-                this.$socket.connect();
-            }
-        }
-    },
-    computed: {},
-    sockets: {
-        connect: function () {
-            console.log('CONNECTED');
-            this.$socket.emit('pingtest', {hey: true});
-            this.is_connected = true;
-            this.events = [];
-
-            let data = this;
-
-            // Status
-            this.$http.get('/status/')
-                .then((response) => {
-                    console.log(response.body);
-
-                    // Actors
-                    data.actors = response.body.actors;
-
-                    // Backlog
-                    response.body.backlog.forEach(function(event) {
-                        data.events.unshift(event);
-                    });
-                })
-                .catch((err) => {
-                    console.log('!!!!!!!')
-                    console.log(err);
-                });
-        },
-        event: function(data) {
-            console.log('------EVNT-----------------------------------:');
-			console.log(data);
-            console.log(data.actions);
-            this.events.unshift(data);
-        },
-        result: function(result) {
-            console.log('------RSLT-----------------------------------:');
-            console.log(result);
-
-            this.events.forEach(function(event) {
+        SOCKET_RESULT: (state, result) => {
+            // Update event results
+            state.events.forEach(function(event) {
                 event.actions.forEach(function(action) {
                     if (action.uuid === result.uuid) {
                         action.completed_timestamp = result.completed_timestamp;
@@ -155,10 +62,74 @@ var app = new Vue({
                     }
                 });
             });
-        },
-        disconnect: function() {
-            console.log('DISCONNECTED');
-            this.is_connected = false;
         }
+    },
+    actions: {
+        // clearRequestsLog({commit}) {
+        //     console.log('Clearing requests log');
+        //     commit('REQUESTS_LOG_CLEARED');
+        // }
     }
 });
+
+
+Vue.use(VueSocketIOExt, socket, { store });
+
+
+
+// ====== Router ===============================================================
+Vue.use(VueRouter)
+
+const router = new VueRouter({
+  routes: [
+      { path: '/', component: Dashboard },
+      { path: '/config', component: Config },
+    ],
+});
+
+
+// ====== App ==================================================================
+var app = new Vue({
+    router,
+    store,
+    data: {
+        currentMenuKey: '/',
+        actors: [],
+    },
+    computed: {
+        is_connected() { return store.state.is_connected; },
+    },
+    watch: {
+        '$route' (to, from) {
+            console.log('Routing from '+from.path+' to '+to.path);
+
+            // if (to.params.category != this.currentCategory) {
+            //     this.setCategory(to.params.category);
+            // }
+        }
+    },
+    methods: {
+        handleMenuClick(e) {
+            console.log(e.key, this.currentMenuKey)
+            if (e.key != this.currentMenuKey) {
+                this.currentMenuKey = e.key;
+                // console.log('click', e)
+                // console.log(e.item.active);
+                router.push(e.key);
+            }
+        },
+        toggleConnection: function() {
+            if (this.is_connected) {
+                this.$socket.disconnect();
+            } else {
+                this.$socket.connect();
+            }
+        }
+    },
+    created() {
+        this.currentMenuKey = this.$route.path;
+    },
+    mounted: function() {
+        
+    },
+}).$mount('#app');

@@ -6,13 +6,19 @@
 
   <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
   <link href="/static/material-design-iconic-font.min.css" rel="stylesheet">
+  <link href="/static/vue-antd.min.css" rel="stylesheet">
   <link href="/static/style.css" rel="stylesheet">
 
-  <script type="text/javascript" src="https://unpkg.com/vue"></script>
-  <script type="text/javascript" src="https://unpkg.com/vue-resource@1.5.1/dist/vue-resource.min.js"></script>
-  <script type="text/javascript" src="https://unpkg.com/vuebar"></script>
-  <script type="text/javascript" src="/static/vue-websocket.js"></script>
+  <script type="text/javascript" src="/static/vue.js"></script>
+  <script type="text/javascript" src="/static/vue-resource.min.js"></script>
+  <script type="text/javascript" src="/static/vue-router.js"></script>
+  <script type="text/javascript" src="/static/vuex.min.js"></script>
+  <script type="text/javascript" src="/static/vue-socketio.js"></script>
+  <script type="text/javascript" src="/static/vue-antd.min.js"></script>
   <script type="text/javascript" src="/static/vue-moment.js"></script>
+  <script type="text/javascript" src="/static/vue-bar.js"></script>
+  <script type="text/javascript" src="/static/vue-click-outside.js"></script>
+  <script type="text/javascript" src="/static/utils.js"></script>
   
   <style type="text/css">
 
@@ -21,47 +27,68 @@
 
  <body>
   <div id="app">
-   <header>
+   <a-layout>
+    <!-- Header -->
+    <a-layout-header class="header">
+     <!-- Logo -->
+     <div class="logo">
+      <a-badge dot
+        :title="is_connected ? 'Disconnect' : 'Connect'" 
+        :status="is_connected ? 'success' : 'error'" 
+        @click="toggleConnection">
+       <i class="zmdi zmdi-flash"></i>HomeGhost
+      </a-badge>
+     </div>
+
+     <!-- Menu -->
+     <a-menu
+       theme="dark"
+       mode="horizontal"
+       :default-open-keys="[currentMenuKey]"
+       @click="handleMenuClick">
+      <a-menu-item key="/">
+       <a-icon type="dashboard"></a-icon>
+       <span>Dashboard</span>
+      </a-menu-item>
+      <a-menu-item key="/config">
+       <a-icon type="setting"></a-icon>
+       <span>Config</span>
+      </a-menu-item>
+     </a-menu>
+    </a-layout-header>
+
+    <!-- Content -->
+    <a-layout>
+     <a-layout-content>
+      <router-view></router-view>
+     </a-layout-content>
+    </a-layout>
+
+   </a-layout>
+  </div>
+
+
+   <!--header>
     <i class="zmdi zmdi-flash"></i>HomeGhost
-    <button :class="[{ connected: is_connected }]" @click="toggle_connection">
+    <button :class="[{ connected: is_connected }]" @click="toggleConnection">
      <template v-if="is_connected"><i class="zmdi zmdi-stop"></i>Disconnect</template>
      <template v-if="!is_connected"><i class="zmdi zmdi-play"></i>Connect</template>
     </button>
    </header>
 
    <section>
-    <div class="actors">
-     <!--div v-for="actor in actors" class="actor" 
-         :class="[{dim: !actor.state.running}, actor.actor.toLowerCase() ]" >
-      <h1>{{actor.alias}}</h1>
-      <template v-if="actor.state.label">{{actor.state.label}}</template>
-     </div-->
-     <actors></actors>
-    </div>
+    <actors :instances="actors" />
+
     <div class="log" v-bar>
      <div>
-      <div v-for="event in events" class="event" 
-          :class="{dim: event.actions.length == 0}" >
-       <h1>{{event.source}}.{{event.name}} [{{event.actions.length}}]</h1>
-       <div v-for="action in event.actions">
-        <h2>
-         {{action.actor}}.{{action.method}}({{action.args}})
-         <span class="uuid">{{action.uuid}}, {{action.created_timestamp|moment("YYYY-MM-DD, HH:mm:ss")}}</span>
-         <span class="message" v-if="action.message">{{action.message}}, {{action.completed_timestamp|moment("YYYY-MM-DD, HH:mm:ss")}}</span>
-        </h2>
-        <!-- <h3 ><i class="zmdi zmdi-circle"></i>{{action.executed}}, {{action.success}}, </h3> -->
-       </div>
-      </div>
+      <event v-for="event in events" :event="event" v-bind:key="event.uuid" />
      </div>
     </div>
-    <div class="buttons">
-     <button @click="on()">ON</button>
-     <button @click="dim()">DIM</button>
-     <button @click="off()">OFF</button>
-    </div>
    </div>
-  </section>
+  </section-->
 
+  <script type="text/javascript" src="/static/homeghost.components.js"></script>
+  <script type="text/javascript" src="/static/homeghost.views.js"></script>
   <script type="text/javascript" src="/static/homeghost.js"></script>
  </body>
 </html>

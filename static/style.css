@@ -1,177 +1,130 @@
-* { box-sizing: border-box; font-family: 'Roboto', sans-serif; }
-html, body { height: 100%; margin: 0; }
-div#app { background: #20304B; height: 100%; }
-
-.dim { opacity: 0.5; }
-
-header { 
-    background: rgba(0, 0, 0, 0.2); 
-    height: 50px; padding: 15px;
-    color: rgba(255, 255, 255, 0.6);
-}
-header > i.zmdi { margin-right: 10px; color: #ffc107; }
-header > button { 
-    float: right; opacity: 0.8; padding: 2px 6px;
-    border: 0; outline: 0; border-radius: 3px;
-    background: #e91e63; color: rgba(255, 255, 255, 0.9);
-    font-size: 0.7rem; cursor: pointer;
-}
-header > button:hover { opacity: 1; }
-header > button.connected { background: #4caf50; }
-header > button > i.zmdi { 
-    margin-right: 6px; font-size: 0.75rem; 
-    color: rgba(255, 255, 255, 0.4);
+* { box-sizing: border-box; }
+html, body, #app, .ant-layout, div.view { 
+    width: 100%; height: 100%; margin: 0;
 }
 
-section {
-    height: calc(100% - 50px);
+body, div#app, div#app .ant-layout , div.view { 
+    background: #001529; color: rgba(255, 255, 255, 0.75);
+}
+
+/* Header */
+.ant-layout-header {
     display: grid; 
-    grid-template-rows: 50px 1fr 100px; 
-    grid-row-gap: 10px;
-    padding: 10px;
+    grid-template-columns: 125px 1fr; 
+    grid-gap: 15px;
+    padding: 0 30px;
+    height: 48px; line-height: 48px;
 }
+.ant-layout-header > .logo { 
+    color: rgba(255, 255, 255, 0.75); 
+    font-weight: bold;
+}
+.ant-layout-header > .logo i.zmdi { margin-right: 10px; color: #ffc107; }
+.ant-layout-header > .logo .ant-badge-status { line-height: normal; }
+.ant-layout-header > .logo .ant-badge-dot { 
+    right: -7px; top: 7px;
+    cursor: pointer; 
+    box-shadow: none;
+}
+.ant-layout-header > .ant-menu { line-height: 48px; }
 
-section > div.actors {
-    /*display: grid; 
-    grid-template-columns: 1fr 1fr 1fr 1fr 1fr; 
-    grid-column-gap: 10px;*/
-}
-
-section > div.actors ul {
-  list-style-type: none;
-  margin: 0; padding: 0;
-  width: 100%; z-index: 999;
-}
-section > div.actors ul li { position: relative; }
-
-
-/*
-ul li a:hover {
-  color: #ffffff;
-  background-color: rgba(33, 37, 41, 0.65);
-}
-ul li a.active {
-  background-color: rgba(33, 37, 41, 0.45);
-}
-ul li ul li a {
-  background-color: transparent;
-}
-*/
+.ant-menu { font-size: 11px; }
+.ant-menu .ant-menu-item-selected { background-color: transparent !important; }
 
 
-section > div.actors > ul {
+/* Content */
+.ant-layout-content { padding: 15px 30px; }
+
+
+
+div.actors { margin-bottom: 15px; }
+div.actors ul {
+    list-style-type: none;
+    margin: 0; padding: 0;
+    width: 100%; z-index: 999;
+}
+div.actors > ul {
     display: grid; 
-    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr; 
+    grid-template-columns: repeat(4, 1fr); 
     grid-column-gap: 10px;
 }
-section > div.actors > ul > li > div.actor { 
-    position: relative;
-    padding: 10px 10px 10px 40px; 
-    background: rgba(0, 0, 0, 0.5); 
-    border: 0; border-radius: 4px;
+div.actors ul li { position: relative; }
+div.actors ul li > div:not(.dropdown) {
+    position: relative; padding: 10px; 
+    /*background: rgba(0, 0, 0, 0.5); */
+    background: #000D19; border: 0;
+    cursor: pointer; font-size: 0.8rem;
     color: rgba(255, 255, 255, 0.6); 
-    font-size: 0.6rem;
-    /*transition: all 200ms ease;*/
 }
-section > div.actors > ul > li > div.actor::after { 
-    position: absolute; top: 13px; left: 12px;
+div.actors ul li > div:not(.dropdown):hover,
+div.actors ul li > div.active { background: #0A111D; }
+div.actors ul li > div.actor { border-radius: 4px; padding-left: 40px; }
+div.actors ul li > div.actor.active { 
+    border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+}
+div.actors ul li > div.actor-event { padding-left: 16px; }
+div.actors ul li > div.actor-event > i.zmdi { 
+    margin-right: 11px; width: 10px;
+    color: rgba(255, 255, 255, 0.25); text-align: center;
+}
+div.actors ul li:last-of-type > div.actor-event {
+    border-bottom-left-radius: 4px; border-bottom-right-radius: 4px;
+}
+
+div.actors div.actor { font-size: 0.6rem; padding-left: 30px; }
+div.actors div.actor::after { 
+    position: absolute; top: 13px; left: 11px;
+    width: 20px; text-align: center;
     font: normal normal normal 1.3rem 'Material-Design-Iconic-Font';
     content: '\f1b1'; color: rgba(255, 255, 255, 0.2);
 }
-section > div.actors > ul > li > div.actor.tellstickactor::after { content: '\f36c'; }
-section > div.actors > ul > li > div.actor.harmonyactor::after { content: '\f2c5'; }
-section > div.actors > ul > li > div.actor > h1 { 
-    font-size: 0.8rem; margin: 0 0 3px 0;
+div.actors div.actor.tellstickactor::after { content: '\f36c'; }
+div.actors div.actor.harmonyactor::after { content: '\f2c5'; }
+div.actors div.actor > h1 { 
+    font-size: 0.8rem; margin: 0;
     font-weight: normal; color: rgba(255, 255, 255, 0.8);
 }
+div.actors div.actor:not(.dim) > h1 { color: #2196f3; }
+div.actors div.actor > span { font-size: 0.6rem; color: #c2185b; }
 
-section > div.actors > ul > li > div.dropdown { 
-    position: absolute;
-    left: 50%;
-    width: 100%;
-    transform: translatex(-50%) rotatex(90deg) scale(0);
-    /*margin-top: 0.55em;*/
-    transform-origin: 0 0;
-    border-radius: 0.35em;
-    /*background-color: rgba(33, 37, 41, 0.15);*/
-    background: #000;
-    visibility: hidden;
-    opacity: 0;
-    transition: all 200ms linear;
-    color: #FFF;
+div.actors div.actor + div.dropdown { 
+    position: absolute; left: 0; width: 100%;
+    color: #FFF; z-index: 99;
+    visibility: hidden; opacity: 0;
+    transition: all 250ms ease-in-out;
 }
-section > div.actors > ul > li > div.dropdown.isOpen {
-    transform: translatex(-50%);
-    visibility: visible;
-    opacity: 1;
+div.actors div.actor.active + div.dropdown {
+    visibility: visible; opacity: 1;
 }
 
 
 
-/*
-section > div.actors > div.actor {
-    position: relative; padding: 7px 10px 5px 40px;
-    background: rgba(0, 0, 0, 0.5); 
-    border: 0; border-radius: 4px;
-    color: rgba(255, 255, 255, 0.6); 
-    font-size: 0.6rem;
-}
-section > div.actors > div.actor::after {
-    position: absolute; top: 13px; left: 12px;
-    font: normal normal normal 1.3rem 'Material-Design-Iconic-Font';
-    content: '\f1b1'; color: rgba(255, 255, 255, 0.2);
-}
-section > div.actors > div.actor.tellstickactor::after { content: '\f36c'; }
-section > div.actors > div.actor.harmonyactor::after { content: '\f2c5'; }
 
-section > div.actors > div.actor > h1 { 
-    font-size: 0.8rem; margin: 0 0 5px 0; 
-    font-weight: normal; color: rgba(255, 255, 255, 0.8);
-}
-section > div.actors > div.actor:not(.dim) > h1 { color: #2196f3; }
-*/
-
-
-section > div.log > div {
-    /*display: grid !important; 
-    grid-template-columns: 1fr; 
-    grid-row-gap: 5px;*/
-}
-section > div.log div.event {
+div.log { height: calc(100% - 80px); }
+div.log div.event {
     padding: 10px; margin-right: 15px;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 5px; 
-    color: rgba(255, 255, 255, 0.6);
 }
-section > div.log div.event:not(:last-of-type) { margin-bottom: 5px; }
+div.log div.event:not(:last-of-type) { margin-bottom: 5px; }
+div.log div.event.dim { background: transparent; }
 
-section > div.log div.event h1,
-section > div.log div.event h2,
-section > div.log div.event h3 { margin: 0 0 2px 0; font-weight: normal; }
-section > div.log div.event h1 { font-size: 0.8rem; }
-section > div.log div.event:not(.dim) h1 { color: #FFC107; }
-section > div.log div.event h2 { font-size: 0.7rem; color: #8BC34A; }
-section > div.log div.event h2 > span { 
+div.log div.event h1,
+div.log div.event h2,
+div.log div.event h3 { 
+    margin: 0 0 2px 0; font-weight: normal; 
+    color: rgba(255, 255, 255, 0.3);
+}
+div.log div.event h1 { font-size: 0.8rem; }
+div.log div.event:not(.dim) h1 { color: #FFC107; }
+div.log div.event h2 { font-size: 0.7rem; color: #8BC34A; }
+div.log div.event h2 > span { 
     font-size: 0.6rem; 
     color: rgba(255, 255, 255, 0.3);
 }
-section > div.log div.event h2 > span.message { float: right; }
-section > div.log div.event h3 { font-size: 0.7rem; }
-section > div.log div.event i.zmdi { margin-right: 5px; }
-
-section > div.buttons {
-    display: grid; 
-    grid-template-columns: 1fr 1fr 1fr; 
-    grid-column-gap: 10px;
-}
-section button { 
-    width: 100%; display: block; cursor: pointer;
-    background: rgba(0, 0, 0, 0.5); 
-    border: 0; border-radius: 4px;
-    color: #FFF; font-size: 2rem; 
-}
-section button:hover { background: rgba(0, 0, 0, 0.4); }
-
+div.log div.event h2 > span.message { float: right; }
+div.log div.event h3 { font-size: 0.7rem; }
+div.log div.event i.zmdi { margin-right: 5px; }
 
 
 
