@@ -5,4 +5,4 @@ Pipfile
 Pipfile.lock
 test.*
 *.log
-harmony.json
+*.json
