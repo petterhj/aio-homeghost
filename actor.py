@@ -1,9 +1,8 @@
 # Imports
 import re
 import inspect
-import asyncio
-
-from logger import logger
+from loguru import logger
+# import asyncio
 
 
 
