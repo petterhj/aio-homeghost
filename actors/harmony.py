@@ -59,6 +59,7 @@ class HarmonyActor(AbstractActor):
         self.activities = {
             a['id']: a['label'] for a in self.client.config.get('activity', [])
         }
+        self.data['activities'] = self.activities
 
         logger.info('> Activities:')
         

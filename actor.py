@@ -17,7 +17,9 @@ class AbstractActor:
         self.context = context
         self.alias = actor.get('alias', self.__class__.__name__)
         self.config = actor.get('config', {})
+        self.public_events = actor.get('events', {})
         self.state = {'running': True, 'label': ''}
+        self.data = {}
 
         self.callbacks = self.Callbacks(self)
         self.actions = {

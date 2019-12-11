@@ -31,12 +31,31 @@ class Context(object):
 
     # Queue event
     def queue_event(self, source, name, payload={}):
-        # logger.info('Queing %s.%s event for processing' % (source, name))
+        logger.info('Queing %s.%s event for processing' % (source, name))
         self.events.append((source, name, payload))
 
 
-    # Macros
+    # Property: Macros
     @property
     def macros(self):
         return self.config.get('macros', [])
+
+
+    # Property: Status
+    @property
+    def status(self):
+        return {
+            # 'config': self.config,
+            'actors': [{
+                'actor': actor.__class__.__name__,
+                'alias': actor.alias,
+                'config': actor.config,
+                'state': actor.state,
+                'events': actor.public_events,
+                'data': actor.data
+            } for actor in self.actors],
+            'backlog': self.backlog,
+            'macros': self.macros,
+        }
+    
     

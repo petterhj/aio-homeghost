@@ -1,23 +1,110 @@
 # Imports
 import uuid
 import time
-import logging
+import json
 import asyncio
 import functools
 
+from logger import logger
+from context import Context
+from actor import AbstractActor
 
-# Logger
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger('homeghost.' + __name__)
+
+class Message:
+    class Serializer:
+        pass
+
+
+    def encode(self, value):
+        if isinstance(value, Context):
+            return id(value)
+        if isinstance(value, AbstractActor):
+            return value.alias
+        if isinstance(value, Message):
+            return dict(value)
+        else:
+            return value
+
+
+    def __iter__(self):
+        properties = self.__dict__
+        exclude = getattr(self.Serializer, 'exclude_attrs', [])
+
+        for attr in exclude:
+            if attr in properties.keys():
+                print('- x', attr)
+                del properties[attr]
+
+        for attr, value in properties.items():
+            if callable(value):
+                yield (attr, value.__name__)
+            elif isinstance(value, list):
+                yield (attr, [self.encode(e) for e in value])
+            else:
+                yield (attr, self.encode(value))
+
+
+
+# Class: Event
+class Event(Message):
+# class Event:
+    class Serializer:
+        exclude_attrs = []
+
+    # Init
+    def __init__(self, context, source, name, payload={}):
+        self.context = context
+        self.uuid = str(uuid.uuid4())
+
+        self.source = source
+        self.name = name
+        self.payload = {}
+
+        self.created_timestamp = int(time.time())
+
+        self.actions = self.get_actions()
+
+
+    # Get actions
+    def get_actions(self):
+        # Actions
+        actions = []
+
+        logger.debug('Getting actions for event %s.%s (%d macros total)' % (
+            self.source, self.name, len(self.context.macros)
+        ))
+
+        for action in [
+            a for m in self.context.macros if '%s.%s' % (self.source, self.name) 
+                in m['events'] for a in m['actions']]:
+
+            actor = self.context.get_actor(action[0])
+            method = actor.get_method(action[1])
+            args = action[2:]
+            is_coroutine = asyncio.iscoroutinefunction(method)
+            action_type = AsyncAction if is_coroutine else Action
+
+            logger.debug('- Action: %s%s through %s' % (
+                method.__name__, args, actor.alias
+            ))
+
+            actions.append(action_type(actor, method, args))
+
+        logger.debug('Found %d actions' % (len(actions)))
+
+        return actions
 
 
 
 # Class: Action
-class Action:
+class Action(Message):
+    class Serializer:
+        exclude_attrs = []
+
     # Init
     def __init__(self, actor, method, args):
-        self.uuid = str(uuid.uuid4())
         self.context = actor.context
+        self.uuid = str(uuid.uuid4())
 
         self.actor = actor
         self.method = method
@@ -34,29 +121,14 @@ class Action:
     def wrapper(self):
         self.success, self.message = self.method(*self.args)
         self.completed_timestamp = int(time.time())
-        self.context.results.append(self.dict())
+        self.context.results.append(dict(self))
 
 
     # Execute
     def execute(self):
-        self.queued_timestamp = int(time.time())
         logger.debug('Non-coroutine function, using call_soon')
+        self.queued_timestamp = int(time.time())
         self.context.loop.call_soon(self.wrapper)
-
-
-    # Dict
-    def dict(self):
-        return {
-            'actor': self.actor.alias,
-            'method': self.method.__name__,
-            'args': self.args,
-            'uuid': self.uuid,
-            'created_timestamp': self.created_timestamp,
-            'queued_timestamp': self.queued_timestamp,
-            'completed_timestamp': self.completed_timestamp,
-            'success': self.success,
-            'message': self.message,
-        }
 
 
     # Representation
@@ -74,10 +146,11 @@ class AsyncAction(Action):
     async def wrapper(self):
         self.success, self.message = await self.method(*self.args)
         self.completed_timestamp = time.time()
-        self.context.results.append(self.dict())
+        self.context.results.append(dict(self))
 
 
     # Execute
     def execute(self):
         logger.debug('Coroutine function, using create_task')
+        self.queued_timestamp = int(time.time())
         self.context.loop.create_task(self.wrapper())

@@ -1,13 +1,7 @@
 import os
 import json
-
 from aiohttp import web
-
-from logger import logger
-
-
-# BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-# logger = logging.getLogger('homeghost.' + __name__)
+from loguru import logger
 
 
 
@@ -38,6 +32,7 @@ class HttpServer(web.Application):
         self.add_routes([
             web.get('/', self.index),
             web.get('/status/', self.status),
+            web.get('/event/{source}/{name}', self.event),
         ])
 
         self.router.add_static('/static', './static')
@@ -64,16 +59,21 @@ class HttpServer(web.Application):
 
     # Route: Status
     async def status(self, request):
-        status = {
-            'actors': [{
-                'actor': actor.__class__.__name__,
-                'alias': actor.alias,
-                'config': actor.config,
-                'state': actor.state,
-            } for actor in self.context.actors],
-            'backlog': self.context.backlog,
-            'macros': self.context.macros,
-        }
+        return web.Response(**{
+            'body': json.dumps(self.context.status).encode('UTF-8'), 
+            'headers': {'Content-Type': 'application/json'}
+        })
 
-        headers = {'Content-Type': 'application/json'}
-        return web.Response(body=json.dumps(status).encode('UTF-8'), headers=headers)
+
+    # Route: Event
+    async def event(self, request):
+        
+        self.context.queue_event(request.match_info['source'], request.match_info['name'])
+
+        return web.Response(**{
+            'body': json.dumps({
+                'source': request.match_info['source'],
+                'name': request.match_info['name']
+            }).encode('UTF-8'), 
+            'headers': {'Content-Type': 'application/json'}
+        })

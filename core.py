@@ -1,15 +1,17 @@
 # Imports
 import time
+import json
 import asyncio
 import functools
-from logger import logger
+from loguru import logger
 
 from context import Context
 from http_server import HttpServer
-from socket_server import sio
+from socket_server import SocketServer
 from actor import AbstractActor
-from action import Action, AsyncAction
+from action import Event, Action, AsyncAction
 
+import pprint
 
 
 # Class: Core
@@ -20,18 +22,22 @@ class Core(object):
 
         logger.info('-'*50)
         logger.info('Initializing...')
+        logger.debug(config)
 
         # Context
         self.loop = None
         self.running = False
         self.context = Context()
         self.context.config = config
-        self.context.socket_server = sio
 
 
     # Run
     def run(self):
-        # Get current event loop 
+        # Get event loop
+        # --------------------
+        # Get the current event loop. If there is no current event loop set in 
+        # the current OS thread and set_event_loop() has not yet been called, 
+        # asyncio will create a new event loop and set it as the current one.
         self.loop = asyncio.get_event_loop()
         self.context.loop = self.loop
         self.futures = []
@@ -45,21 +51,22 @@ class Core(object):
             lambda a: a['class'](a, self.context), self.context.config['actors']
         ))
 
-        # Actions processor
+        # Message processor
         self.futures.append(asyncio.ensure_future(self.events_processor()))
-        # self.futures.append(asyncio.ensure_future(self.results_processor()))
 
         # Actors
         for actor in self.context.actors:
             self.futures.append(asyncio.ensure_future(actor.loop()))
 
         try:
-            # Server
+            # Servers
             self.context.http_server = HttpServer()
-            self.context.socket_server.context = self.context
-            self.context.socket_server.attach(self.context.http_server)
-            server = self.context.http_server.configure(self.context)
-            asyncio.ensure_future(server, loop=self.loop)
+            self.context.socket_server = SocketServer(async_mode='aiohttp')
+            self.context.socket_server.configure(self.context)
+            
+            asyncio.ensure_future(
+                self.context.http_server.configure(self.context), 
+                loop=self.loop)
 
             # Startup event
             self.context.queue_event('homeghost', 'startup', payload={})
@@ -85,71 +92,52 @@ class Core(object):
     # Events processor
     async def events_processor(self):
         while self.running:
-        	# Process events
+            # Process events
             if self.context.events:
-	            # Process event
-	            source, name, payload = self.context.events.popleft()
+                # Process event
+                source, name, payload = self.context.events.popleft()
 
-	            logger.info('Event received: %s.%s, %s' % (source, name, str(payload)))
+                logger.info('Event received: %s.%s, %s' % (
+                    source, name, str(payload)
+                ))
 
-	            # Actions
-	            actions = []
+                try:
+                    event = Event(self.context, source, name, payload)
 
-	            for action in [
-	                a for m in self.context.macros if '%s.%s' % (source, name) 
-	                    in m['events'] for a in m['actions']]:
+                except:
+                    logger.exception('Could not create event %s.%s' % (
+                        source, name
+                    ))
+                else:
+                    # Emit event
+                    await self.context.socket_server.emit('event', dict(event))
 
-	                actor = self.context.get_actor(action[0])
-	                method = actor.get_method(action[1])
-	                args = action[2:]
-	                action_type = AsyncAction if asyncio.iscoroutinefunction(method) else Action
+                    self.context.backlog.append(dict(event))
 
-	                actions.append(action_type(actor, method, args))
+                    if len(event.actions) == 0:
+                        continue
 
-	            # Event
-	            event = {
-	                'source': source,
-	                'name': name,
-	                'payload': payload,
-	                'actions': [a.dict() for a in actions],
-	                'fired_timestamp': int(time.time()),
-	            }
+                    logger.info('Executing %d actions for event %s.%s' % (
+                        len(event.actions), source, name
+                    ))
+                    
+                    # Execute actions
+                    for action in event.actions:
+                        logger.info('- Executing %s%s  on %s' % (
+                            action.method.__name__, 
+                            action.args,
+                            action.actor.alias
+                        ))
 
-	            # Emit event
-	            await self.context.socket_server.emit('event', event)
+                        action.execute()
 
-	            self.context.backlog.append(event)
-
-	            if len(actions) == 0:
-	                continue
-
-	            logger.info('Executing %d actions for event %s.%s' % (len(actions), source, name))
-	            
-	            # Execute actions
-	            for action in actions:
-	                action.execute()
-
-        	# Process results
+            # Process results
             if self.context.results:
                 result = self.context.results.popleft()
 
                 await self.context.socket_server.emit('result', result)
 
             await asyncio.sleep(0.01)
-
-
-    # Results processor
-    '''
-    async def results_processor(self):
-        while self.running:
-            # if self.context.results:
-            #     result = self.context.results.popleft()
-
-            #     await self.context.socket_server.emit('result', result)
-            # pass
-
-            await asyncio.sleep(0.01)
-    '''
 
 
     # Do async

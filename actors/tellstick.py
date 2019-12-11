@@ -8,9 +8,6 @@ from logger import logger
 from actor import AbstractActor
 
 
-# logger = logging.getLogger('homeghost.' + __name__)
-
-
 
 # Constants
 METHODS = {const.TELLSTICK_TURNON: 'on',
@@ -70,6 +67,7 @@ class TellstickActor(AbstractActor):
         # --------------------
         # List of configured devices in /etc/tellstick.conf
         self.devices = self.get_devices()
+        self.data['devices'] = {did: d.name for did, d in self.devices.items()}
 
         # Register event callback handlers
         self.telldus.register_device_event(self.callbacks.device_event)
@@ -103,7 +101,9 @@ class TellstickActor(AbstractActor):
         devices = self.telldus.devices()
 
         for d in devices:
-            logger.info('> Device: {0}, {1}, {2}, {3}, {4}'.format(d.id, d.name, d.protocol, d.type, d.model))
+            logger.info('> Device: {0}, {1}, {2}, {3}, {4}'.format(
+                d.id, d.name, d.protocol, d.type, d.model
+            ))
 
         return {device.id: device for device in devices}
 
