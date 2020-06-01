@@ -5,3 +5,6 @@ aioreloader
 aioharmony
 aiohttp-jinja2
 tellcore-py
+pyyaml
+ua-parser
+user-agents

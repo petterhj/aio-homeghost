@@ -62,6 +62,7 @@ class HttpServer(web.Application):
         self.add_routes([
             web.get('/', self.index),
             web.get('/status/', self.status),
+            web.get('/status/backlog/', self.backlog),
             web.get('/event/{source}/{name}', self.event),
             web.get('/static/actor/{name}.js', self.actor),
         ])
@@ -97,6 +98,14 @@ class HttpServer(web.Application):
     async def status(self, request):
         return web.Response(**{
             'body': json.dumps(self.context.status).encode('UTF-8'), 
+            'headers': {'Content-Type': 'application/json'}
+        })
+
+
+    # Route: Backlog
+    async def backlog(self, request):
+        return web.Response(**{
+            'body': json.dumps([dict(e) for e in self.context.backlog]).encode('UTF-8'), 
             'headers': {'Content-Type': 'application/json'}
         })
 
