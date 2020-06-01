@@ -13,19 +13,20 @@ config = {
     'server': {'host': '0.0.0.0', 'port': 8880},
     'actors': [
         {'class': TellstickActor, 'alias': 'tellstick',
-        	'events': [
-        		{'label': 'On', 'event': 'tellstick.web.on', 'icon': 'brightness-7'},
-        		{'label': 'Dim', 'event': 'tellstick.web.dim', 'icon': 'brightness-6'},
-        		{'label': 'Off', 'event': 'tellstick.web.off', 'icon': 'brightness-2'}
-        	]
+        	# 'web': {'menu': [
+        	# 	{'label': 'On', 'event': 'tellstick.web.on', 'icon': 'brightness-7'},
+        	# 	{'label': 'Dim', 'event': 'tellstick.web.dim', 'icon': 'brightness-6'},
+        	# 	{'label': 'Off', 'event': 'tellstick.web.off', 'icon': 'brightness-2'}
+        	# ]}
        	},
         {'class': HarmonyActor, 'alias': 'harmony', 
         	'config': {'host': '192.168.1.6'},
-        	'events': [
-        		{'label': 'Watch Chromecast', 'event': 'harmony.web.chromecast', 'icon': 'cast-connected'},
-        		{'label': 'Listen Chromecast', 'event': 'harmony.web.chromecast.audio', 'icon': 'audio'},
-        		{'label': 'Off', 'event': 'harmony.web.off', 'icon': 'power'}
-        	]
+        	# 'web': {'menu': [
+        	# 	{'label': 'Mute receiver', 'event': 'harmony.web.mute', 'icon': 'cast-connected'},
+         #        {'label': 'Watch Chromecast', 'event': 'harmony.web.chromecast', 'icon': 'cast-connected'},
+        	# 	{'label': 'Listen Chromecast', 'event': 'harmony.web.chromecast.audio', 'icon': 'audio'},
+        	# 	{'label': 'Off', 'event': 'harmony.web.off', 'icon': 'power'}
+        	# ]}
         },
         # {'actor': KodiActor, 'alias': 'stue', 'host': '192.168.1.4', 'port': 1234}
     ],
@@ -49,19 +50,22 @@ config = {
             # ('tellstick', 'dim', 203, 50),
             # ('tellstick', 'off', 103),
         ]},
-
+        {'events': ['harmony.web.mute'], 'actions': [
+            ('harmony', 'command', 45627582, 'Play'),
+        ]},
+        {'events': ['harmony.web.off'], 'actions': [
+            # ('harmony', 'start_activity', -1),
+            ('tellstick', 'dim', 101),
+        ]},
         {'events': ['tellstick.on.button'], 'actions': [
             # ('tellstick', 'on', 203),
             # ('tellstick', 'on', 202),
             # ('tellstick', 'on', 201),
             # ('tellstick', 'on', 101),
             # ('tellstick', 'on', 102),
-            ('tellstick', 'on', 103),
+            # ('tellstick', 'on', 103),
             # ('tellstick', 'on', 104),
-            ('harmony', 'start_activity', 27000842),
-        ]},
-        {'events': ['harmony.web.off'], 'actions': [
-            ('harmony', 'start_activity', -1),
+            ('harmony', 'start_activity', 27000843),
         ]},
         {'events': ['tellstick.off.button', 'web.off'], 'actions': [
             # ('tellstick', 'off', 101),
@@ -71,7 +75,8 @@ config = {
             # ('tellstick', 'off', 201),
             # ('tellstick', 'off', 202),
             # ('tellstick', 'off', 203),
-            ('harmony', 'command', 45627582, 'Play'),
+            # ('harmony', 'command', 45627582, 'Play'),
+            ('harmony', 'start_activity', -1),
         ]},
     ]
 }

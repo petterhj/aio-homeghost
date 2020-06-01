@@ -45,8 +45,6 @@ class TellstickActor(AbstractActor):
     def __init__(self, config, context):
         super(TellstickActor, self).__init__(config, context)
 
-        self.loop_time = 0.5
-
         # Callback dispatcher
         # --------------------
         # Dispatcher for use with the event loop available in Python 3.4+.
@@ -77,20 +75,26 @@ class TellstickActor(AbstractActor):
         # self.telldus.register_controller_event(self.controller_event)
 
         # State
-        self.state['label'] = '%d devices' % (len(self.devices))
+        # self.web['label'] = '%d devices' % (len(self.devices))
 
 
     # Loop
+    '''
     async def loop(self):
         # Super
+        print('!'*10)
+        logger.warning('---%r' % (self.running))
         await super(TellstickActor, self).loop()
+        logger.warning('---%r' % (self.running))
+
 
         while self.running:
             # Dispatch all pending callbacks in the current thread.
             self.telldus.callback_dispatcher.process_pending_callbacks()
 
             await asyncio.sleep(self.loop_time)
-
+    '''
+    
 
     # Get devices
     def get_devices(self):
@@ -108,11 +112,27 @@ class TellstickActor(AbstractActor):
         return {device.id: device for device in devices}
 
 
+    # Properties
+    @property
+    def web_label(self):
+        return '%d devices' % (len(self.devices))
+
+    @property
+    def web_menu(self):
+        return [
+            {'label': 'On', 'event': 'tellstick.web.on', 'icon': 'brightness-7'},
+            {'label': 'Dim', 'event': 'tellstick.web.dim', 'icon': 'brightness-6'},
+            {'label': 'Off', 'event': 'tellstick.web.off', 'icon': 'brightness-2'}
+        ]
+
+
 
     # Class: Callbacks
     class Callbacks(AbstractActor.Callbacks):
         # Device event
         def device_event(self, id, method, data, cid):
+            ''' Device event callback handler. '''
+
             logger.debug('Device event, id={}, method={}, data={}, cid={}'.format(
                 id, method, data, cid
             ))
@@ -123,11 +143,6 @@ class TellstickActor(AbstractActor):
                 logger.warning('Unknown method %s' % (method))
                 return
 
-            # string = "[DEVICE] {0} -> {1}".format(id_, method_string)
-            # if method == const.TELLSTICK_DIM:
-            #     string += " [{0}]".format(data)
-            # print(string)
-
             self.actor.create_event(name='%s.%s' % (
                 method_string, self.actor.devices[id].name
             ), payload={
@@ -136,7 +151,11 @@ class TellstickActor(AbstractActor):
                 'name': self.actor.devices[id].name,
             })
 
+
+        # Device change event
         def device_change_event(self, id, event, type, cid):
+            ''' Device change event callback handler. '''
+
             event_string = EVENTS.get(event, "UNKNOWN EVENT {0}".format(event))
             string = "[DEVICE_CHANGE] {0} {1}".format(event_string, id)
             if event == const.TELLSTICK_DEVICE_CHANGED:
@@ -147,6 +166,8 @@ class TellstickActor(AbstractActor):
 
         # Raw event
         def raw_event(self, data, controller_id, cid):
+            ''' Raw device event callback handler. '''
+
             logger.debug('Raw[%s]:%s' % (str(controller_id), data))
 
 

@@ -1,11 +1,9 @@
 * { box-sizing: border-box; }
 html, body, #app, .ant-layout, div.view { 
     width: 100%; height: 100%; margin: 0;
-}
-
-body, div#app, div#app .ant-layout , div.view { 
     background: #001529; color: rgba(255, 255, 255, 0.75);
 }
+
 
 /* Header */
 .ant-layout-header {
@@ -101,13 +99,19 @@ div.actors div.actor.active + div.dropdown {
 
 
 div.log { height: calc(100% - 80px); }
+
 div.log div.event {
     padding: 10px; margin-right: 15px;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 5px; 
 }
-div.log div.event:not(:last-of-type) { margin-bottom: 5px; }
-div.log div.event.dim { background: transparent; }
+div.log div.event:not(:last-of-type) { 
+    margin-bottom: 10px; 
+}
+div.log div.event.dim { 
+    background: transparent; 
+    padding: 0 10px;
+}
 
 div.log div.event h1,
 div.log div.event h2,
@@ -115,16 +119,31 @@ div.log div.event h3 {
     margin: 0 0 2px 0; font-weight: normal; 
     color: rgba(255, 255, 255, 0.3);
 }
-div.log div.event h1 { font-size: 0.8rem; }
-div.log div.event:not(.dim) h1 { color: #FFC107; }
-div.log div.event h2 { font-size: 0.7rem; color: #8BC34A; }
+div.log div.event h1 > span,
 div.log div.event h2 > span { 
     font-size: 0.6rem; 
     color: rgba(255, 255, 255, 0.3);
 }
-div.log div.event h2 > span.message { float: right; }
+div.log div.event span.timestamp { 
+    float: right;
+}
+
+div.log div.event h1 { font-size: 0.8rem; }
+div.log div.event:not(.dim) h1 { color: #FFC107; }
+
+div.log div.event h2 { 
+    margin-left: 20px;
+    font-size: 0.7rem; color: #8BC34A; 
+}
+/*div.log div.event h2 > span.message { float: right; }*/
+
 div.log div.event h3 { font-size: 0.7rem; }
-div.log div.event i.zmdi { margin-right: 5px; }
+div.log div.event i.zmdi { 
+    width: 10px;
+    text-align: center;
+    margin-right: 5px; 
+    opacity: 0.5; 
+}
 
 
 
@@ -153,4 +172,14 @@ div.log div.event i.zmdi { margin-right: 5px; }
 }
 .vb.vb-dragging-phantom > .vb-dragger > .vb-dragger-styler {
     background-color: rgba(48, 121, 244,.5);
+}
+
+
+/* Footer */
+footer { 
+    position: absolute; 
+    top: 0; right: 0;
+    margin: 10px 30px;
+    opacity: 0.3;
+    font-size: 0.5rem;
 }

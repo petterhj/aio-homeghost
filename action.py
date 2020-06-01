@@ -14,7 +14,7 @@ class Message:
     class Serializer:
         pass
 
-
+    # Encode
     def encode(self, value):
         if isinstance(value, Context):
             return id(value)
@@ -26,6 +26,7 @@ class Message:
             return value
 
 
+    # Iter
     def __iter__(self):
         properties = self.__dict__
         exclude = getattr(self.Serializer, 'exclude_attrs', [])
@@ -58,7 +59,7 @@ class Event(Message):
 
         self.source = source
         self.name = name
-        self.payload = {}
+        self.payload = payload
 
         self.created_timestamp = int(time.time())
 
@@ -67,6 +68,8 @@ class Event(Message):
 
     # Get actions
     def get_actions(self):
+        ''' Return list of actions associated with event. '''
+
         # Actions
         actions = []
 

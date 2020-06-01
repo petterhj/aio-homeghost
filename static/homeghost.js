@@ -11,7 +11,8 @@ const socket = io('http://{0}:{1}/'.format(document.domain, '8880'), {
 // ====== Store ================================================================
 const store = new Vuex.Store({
     state: {
-        is_connected: false,
+        isConnected: false,
+        socketId: undefined,
         // status: {},
         events: [],
         actors: [],
@@ -19,18 +20,18 @@ const store = new Vuex.Store({
     mutations: {
         SOCKET_CONNECT: (state) => {
             console.log('Connected to socket server');
-            state.is_connected = true;
-            state.socked_id = socket.id;
+            state.isConnected = true;
+            state.socketId = socket.id;
         },
         SOCKET_CONNECT_ERROR(state, test) {
             console.log('Could not connect to socket server');
-            state.is_connected = false;
-            state.socked_id = null;
+            state.isConnected = false;
+            state.socketId = null;
         },
         SOCKET_DISCONNECT(state) {
             console.log('Disconnected from socket server');
-            state.is_connected = false;
-            state.socked_id = null;
+            state.isConnected = false;
+            state.socketId = null;
         },
         SOCKET_STATUS: (state, data) => {
             console.log('Server status received');
@@ -47,7 +48,7 @@ const store = new Vuex.Store({
             });
         },
         SOCKET_EVENT: (state, event) => {
-            console.log('event')
+            console.log('Event received', event);
             // Add event
             state.events.unshift(event);
         },
@@ -97,7 +98,8 @@ var app = new Vue({
         actors: [],
     },
     computed: {
-        is_connected() { return store.state.is_connected; },
+        isConnected() { return store.state.isConnected; },
+        socketId() { return store.state.socketId; },
     },
     watch: {
         '$route' (to, from) {
@@ -119,7 +121,7 @@ var app = new Vue({
             }
         },
         toggleConnection: function() {
-            if (this.is_connected) {
+            if (this.isConnected) {
                 this.$socket.disconnect();
             } else {
                 this.$socket.connect();

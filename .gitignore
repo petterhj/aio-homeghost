@@ -6,3 +6,5 @@ Pipfile.lock
 test.*
 *.log
 *.json
+.venv/
+.vscode/

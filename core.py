@@ -56,7 +56,8 @@ class Core(object):
 
         # Actors
         for actor in self.context.actors:
-            self.futures.append(asyncio.ensure_future(actor.loop()))
+            actor_loop = asyncio.ensure_future(actor.loop())
+            self.futures.append(actor_loop)
 
         try:
             # Servers
@@ -108,20 +109,23 @@ class Core(object):
                     logger.exception('Could not create event %s.%s' % (
                         source, name
                     ))
+
                 else:
                     # Emit event
                     await self.context.socket_server.emit('event', dict(event))
 
-                    self.context.backlog.append(dict(event))
+                    # Add event to backlog
+                    self.context.backlog.append(event)
 
+                    # Ignore if no associated actions
                     if len(event.actions) == 0:
                         continue
 
+                    # Execute actions
                     logger.info('Executing %d actions for event %s.%s' % (
                         len(event.actions), source, name
                     ))
                     
-                    # Execute actions
                     for action in event.actions:
                         logger.info('- Executing %s%s  on %s' % (
                             action.method.__name__, 

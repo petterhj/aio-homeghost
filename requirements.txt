@@ -3,4 +3,5 @@ loguru
 python-socketio
 aioreloader
 aioharmony
+aiohttp-jinja2
 tellcore-py

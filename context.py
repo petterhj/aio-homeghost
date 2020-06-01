@@ -1,4 +1,5 @@
 # Imports
+import os
 import logging
 import collections
 
@@ -11,6 +12,7 @@ logger = logging.getLogger('homeghost.' + __name__)
 class Context(object):
     # Init
     def __init__(self):
+        self.base_dir = os.path.dirname(os.path.abspath(__file__))
         self.config = {}
         self.actors = []
         self.events = collections.deque()
@@ -47,14 +49,18 @@ class Context(object):
         return {
             # 'config': self.config,
             'actors': [{
-                'actor': actor.__class__.__name__,
+                'actor': actor.name,
                 'alias': actor.alias,
                 'config': actor.config,
                 'state': actor.state,
-                'events': actor.public_events,
+                # 'web': actor.web,
+                'web': {
+                    'label': actor.web_label,
+                    'menu': actor.web_menu,
+                },
                 'data': actor.data
             } for actor in self.actors],
-            'backlog': self.backlog,
+            'backlog': [dict(e) for e in self.backlog],
             'macros': self.macros,
         }
     

@@ -21,6 +21,7 @@ class HarmonyActor(AbstractActor):
         self.client = None
         self.loop_time = 0.5
         self.activities = {}
+        self.devices = {}
 
         # Connect
         self.context.loop.run_until_complete(self.connect())
@@ -47,6 +48,11 @@ class HarmonyActor(AbstractActor):
             self.client.name, self.client.fw_version
         ))
 
+        self.data['hub'] = {
+            'name': self.client.name,
+            'fw': self.client.fw_version,
+        }
+
         # Register callbacks
         self.client.callbacks = ClientCallbackType(
             new_activity=self.callbacks.new_activity,
@@ -56,30 +62,41 @@ class HarmonyActor(AbstractActor):
         )
 
         # Config
+        print(self.client.config)
         self.activities = {
-            a['id']: a['label'] for a in self.client.config.get('activity', [])
+            str(a['id']): a['label'] for a in self.client.config.get('activity', [])
         }
         self.data['activities'] = self.activities
 
-        logger.info('> Activities:')
-        
-        for activity_id, activity_name in self.activities.items():
-            logger.info('   %s:%s' % (str(activity_id), activity_name))       
+        logger.debug('> Activities:')
 
+        for aid, name in self.activities.items():
+            logger.debug('   %s:%s' % (str(aid), name))
+
+        self.devices = {
+            str(a['id']): a['label'] for a in self.client.config.get('device', [])
+        }
+        self.data['devices'] = self.devices
+
+        logger.debug('> Devices:')
+        
+        for did, name in self.devices.items():
+            logger.debug('   %s:%s' % (str(did), name))   
+
+        # Update current activity
         activity_id, activity_name = self.client.current_activity
 
-        self.state['label'] = activity_name
+        self.state['current_activity'] = activity_name
 
         logger.info('> Current activity, id=%s, name=%s' % (
             str(activity_id), activity_name
         ))
 
 
-    # @property
-    # # Current activity
-    # def current_activity(self) -> tuple:
-    #     return self._harmony_client.get_activity_name(
-    #             self._harmony_client.current_activity_
+    # Properties
+    @property
+    def web_label(self):
+        return '%s' % (self.state['current_activity'])
 
 
     
@@ -102,7 +119,7 @@ class HarmonyActor(AbstractActor):
                 'name': activity_name,
             })
 
-            self.actor.state['label'] = activity_name
+            self.actor.state['current_activity'] = activity_name
 
 
         # New config
@@ -173,8 +190,6 @@ class HarmonyActor(AbstractActor):
             )
 
 
-
-
         # Command
         async def command(self, device_id, command, delay=0):
             try:
@@ -191,6 +206,6 @@ class HarmonyActor(AbstractActor):
             except:
                 logger.exception('!!!!!!!'*100)
 
-            return True, 'Command %s sent to device %d' % (
-                command, device_id
+            return True, 'Command %s sent to %s (%d)' % (
+                command, self.actor.devices[str(device_id)], device_id
             )
