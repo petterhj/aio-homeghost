@@ -53,13 +53,14 @@ class Event(Message):
         exclude_attrs = []
 
     # Init
-    def __init__(self, context, source, name, payload={}):
+    def __init__(self, context, source, name, payload={}, client=None):
         self.context = context
         self.uuid = str(uuid.uuid4())
 
         self.source = source
         self.name = name
         self.payload = payload
+        self.client = client
 
         self.created_timestamp = int(time.time())
 
@@ -83,6 +84,7 @@ class Event(Message):
 
             actor = self.context.get_actor(action[0])
             method = actor.get_method(action[1])
+
             args = action[2:]
             is_coroutine = asyncio.iscoroutinefunction(method)
             action_type = AsyncAction if is_coroutine else Action
@@ -148,7 +150,7 @@ class AsyncAction(Action):
     # Wrapper
     async def wrapper(self):
         self.success, self.message = await self.method(*self.args)
-        self.completed_timestamp = time.time()
+        self.completed_timestamp = int(time.time())
         self.context.results.append(dict(self))
 
 

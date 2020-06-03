@@ -26,16 +26,26 @@ class SocketServer(AsyncServer):
     async def on_connect(self, sid, environ):
         logger.info('Client connected, sid=%s' % (sid))
 
-        payload = {
-            'sid': sid,
+        print("="*100)
+        print(environ)
+        print(dir(environ['aiohttp.request']))
+        print(environ['aiohttp.request'].scheme)
+        print("="*100)
+
+        client = {
             'user_agent': environ.get('HTTP_USER_AGENT'),
             'remote_ip': environ['aiohttp.request'].remote,
             'device': {},
         }
 
+        payload = {
+            'sid': sid,
+            'client': client,
+        }
+
         try:
             user_agent = ua_parse(environ['HTTP_USER_AGENT'])
-            payload['device'].update({
+            client['device'].update({
                 'is_mobile': user_agent.is_mobile,
                 'is_tablet': user_agent.is_tablet,
                 'is_touch_capable': user_agent.is_touch_capable,
@@ -56,14 +66,12 @@ class SocketServer(AsyncServer):
                 }
             })
         except:
-            pass
+            logger.warning('Could not parse client user agent (ua=%s)' % (
+                environ.get('HTTP_USER_AGENT')
+            ))
 
-        self.context.queue_event('homeghost', 'client.connected', payload=payload)
-
-        print("="*100)
-        print(environ)
-        print(dir(environ['aiohttp.request']))
-        print("="*100)
+        self.context.socket_clients[sid] = client
+        self.context.queue_event('socket', 'client.connected', payload=payload)
 
         await self.emit('status', self.context.status, room=sid)
 
@@ -72,13 +80,26 @@ class SocketServer(AsyncServer):
     async def on_disconnect(self, sid):
         logger.info('Client disconnected, sid=%s' % (sid))
 
-        self.context.queue_event('homeghost', 'client.disconnected', payload={
+        self.context.queue_event('socket', 'client.disconnected', payload={
             'sid': sid
         })
+
+        del self.context.socket_clients[sid]
 
 
     # Event: Event
     async def on_event(self, sid, data):
+        try:
+            self.context.queue_event(**{
+                'source': 'socket', 
+                'name': data['name'], 
+                'payload': data.get('payload'),
+                'client': self.context.socket_clients[sid]['remote_ip'],
+            })
+        except:
+            logger.exception('Failed queing event from socket client')
+
+        """
         source = data.get('source')
         name = data.get('name')
 
@@ -88,3 +109,4 @@ class SocketServer(AsyncServer):
             name = '.'.join(event[1:])
 
         self.context.queue_event(source, name)
+        """

@@ -55,9 +55,9 @@ div.actors ul li > div:not(.dropdown) {
     color: rgba(255, 255, 255, 0.6); 
 }
 div.actors ul li > div:not(.dropdown):hover,
-div.actors ul li > div.active { background: #0A111D; }
+div.actors ul li > div.focused { background: #0A111D; }
 div.actors ul li > div.actor { border-radius: 4px; padding-left: 40px; }
-div.actors ul li > div.actor.active { 
+div.actors ul li > div.actor.focused { 
     border-bottom-left-radius: 0; border-bottom-right-radius: 0;
 }
 div.actors ul li > div.actor-event { padding-left: 16px; }
@@ -91,7 +91,7 @@ div.actors div.actor + div.dropdown {
     visibility: hidden; opacity: 0;
     transition: all 250ms ease-in-out;
 }
-div.actors div.actor.active + div.dropdown {
+div.actors div.actor.focused + div.dropdown {
     visibility: visible; opacity: 1;
 }
 

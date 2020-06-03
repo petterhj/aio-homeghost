@@ -1,5 +1,5 @@
 # Imports
-import copy
+import json
 import asyncio
 
 import aioharmony.exceptions as aioexc
@@ -13,13 +13,11 @@ from actor import AbstractActor
 
 # Class: HarmonyActor
 class HarmonyActor(AbstractActor):
-    # Init
-    def __init__(self, config, context):
-        super(HarmonyActor, self).__init__(config, context)
-            
+    # Setup
+    def setup(self):
         # Properties
         self.client = None
-        self.loop_time = 0.5
+        self.state.connected = False
         self.activities = {}
         self.devices = {}
 
@@ -48,7 +46,7 @@ class HarmonyActor(AbstractActor):
             self.client.name, self.client.fw_version
         ))
 
-        self.data['hub'] = {
+        self.state.hub = {
             'name': self.client.name,
             'fw': self.client.fw_version,
         }
@@ -62,11 +60,14 @@ class HarmonyActor(AbstractActor):
         )
 
         # Config
-        print(self.client.config)
+        with open('harmony.txt', 'w') as outfile:
+            json.dump(self.client.config, outfile)
+        # print(json.dumps(self.client.config))
+        
         self.activities = {
             str(a['id']): a['label'] for a in self.client.config.get('activity', [])
         }
-        self.data['activities'] = self.activities
+        self.state.activities = self.activities
 
         logger.debug('> Activities:')
 
@@ -76,7 +77,7 @@ class HarmonyActor(AbstractActor):
         self.devices = {
             str(a['id']): a['label'] for a in self.client.config.get('device', [])
         }
-        self.data['devices'] = self.devices
+        self.state.devices = self.devices
 
         logger.debug('> Devices:')
         
@@ -86,17 +87,12 @@ class HarmonyActor(AbstractActor):
         # Update current activity
         activity_id, activity_name = self.client.current_activity
 
-        self.state['current_activity'] = activity_name
+        self.state.connected = True
+        self.state.current_activity = activity_name
 
         logger.info('> Current activity, id=%s, name=%s' % (
             str(activity_id), activity_name
         ))
-
-
-    # Properties
-    @property
-    def web_label(self):
-        return '%s' % (self.state['current_activity'])
 
 
     
@@ -119,7 +115,7 @@ class HarmonyActor(AbstractActor):
                 'name': activity_name,
             })
 
-            self.actor.state['current_activity'] = activity_name
+            self.actor.state.current_activity = activity_name
 
 
         # New config
@@ -135,7 +131,9 @@ class HarmonyActor(AbstractActor):
         async def connected(self, _=None):
             """Notification that we're connected to the HUB."""
             logger.info('!'*100)
-            logger.info("Connected to the HUB.", self.actor.client.name)
+            logger.info("Connected to the HUB: %s" % self.actor.client.name)
+            self.actor.state.connected = True
+            # self.actor.update_state('connected', True)
             # if not self._available:
             #     # We were disconnected before.
             #     await self.new_config()
@@ -145,8 +143,8 @@ class HarmonyActor(AbstractActor):
         async def disconnected(self, _=None):
             """Notification that we're disconnected from the HUB."""
             logger.info('!'*100)
-            logger.info("%s: disconnected from the HUB.", self.actor.client.name)
-            # self._available = False
+            logger.info("%s: disconnected from the HUB." % self.actor.client.name)
+            self.actor.state.connected = False
             # We're going to wait for 10 seconds before announcing we're
             # unavailable, this to allow a reconnection to happen.
             await asyncio.sleep(10)

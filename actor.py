@@ -1,8 +1,57 @@
 # Imports
 import re
+import os
+import json
 import inspect
 from logger import logger
-# import asyncio
+from dataclasses import dataclass, field
+
+
+# Class: ActorState
+class ActorState:
+    # actor: AbstractActor
+    running = False
+    errors = []
+
+    def __init__(self, actor):
+        self.actor = actor
+
+    def __setattr__(self, name, value):
+        # current_value = getattr(self, name, None)
+        object.__setattr__(self, name, value)
+
+        if name == 'actor' or not self.actor.context.running:
+            return
+        
+        # Notify state updates
+        if self.actor in self.actor.context.state_updates:
+            logger.warning('State update already queued')
+            return
+
+        # print(current_value)
+        # print(value)
+
+        # if current_value == value:
+        #     logger.error('IGNORING STATE UPDATE, EQUAL')
+        #     return
+
+        logger.info('Notifying state update: %s.%s -> %s=%s' % (
+            self.actor.name, self.actor.alias, name, str(value)
+        ))
+        
+        self.actor.context.state_updates.append({
+            'name': self.actor.name,
+            'alias': self.actor.alias,
+            'state': {
+                'prop': name,
+                'value': value
+            }
+        })
+
+    def to_dict(self):
+        asdict = self.__dict__.copy()
+        del asdict['actor']
+        return asdict
 
 
 
@@ -16,25 +65,44 @@ class AbstractActor:
         self.context = context
         self.alias = actor.get('alias', self.name)
         self.config = actor.get('config', {})
-        # self.public_events = actor.get('events', {})
+        self.metadata = actor.get('metadata', {})
 
-        self.state = {'running': False}
-        # self.web = {'label': '', 'menu': actor.get('web', {}).get('menu', [])}
-        self.data = {}
+        self.state = ActorState(self)
 
         self.callbacks = self.Callbacks(self)
         self.actions = {
-            p[0]:p[1] for p in inspect.getmembers(
-                self.Actions(self), predicate=inspect.ismethod)
+            p[0]: p[1] for p in inspect.getmembers(
+                self.Actions(self), predicate=inspect.ismethod
+            )
         }
 
+        # Metadata
+        # metadata_file = os.path.join(self.context.base_dir, 'actors', self.name, 'meta.json')
 
-    # Loop
-    async def loop(self):
-        ''' Actor loop. '''
+        # if os.path.isfile(metadata_file):
+        #     try:
+        #         with open(metadata_file) as json_file:
+        #             metadata = json.load(json_file)
+        #     except:
+        #         logger.exception('Could not parse actor metadata, name=%s, alias=%s' % (self.name, self.alias))
+        #     else:
+        #         self.metadata = metadata
+        #         logger.debug('Actor metadata loaded, name=%s, alias=%s' % (self.name, self.alias))
+        
+        # Setup
+        try:
+            logger.info('Setting up actor')
+            self.setup()
+        except Exception as e:
+            logger.exception(e)
+            self.state.errors.append(str(e))
+        else:
+            self.state.running = True
 
-        logger.info('Running %s actor loop' % (self.alias))
-        self.state['running'] = True
+
+    # Setup
+    def setup(self):
+        return
 
 
     # Create event
@@ -52,28 +120,29 @@ class AbstractActor:
 
     # Get method
     def get_method(self, method_name):
-        return self.actions[method_name]
+        method = self.actions.get(method_name)
+
+        if not method:
+            logger.error('Method "%s" not defined for %s' % (
+                method_name, self.__class__.__name__
+            ))
+            
+            # Return anonymous method (returning error)
+            return lambda: (False, "%s is not implemented" % (method_name))
+
+        return method
 
 
-    # Stop
-    def stop(self):
-        logger.info('Stopping actor %s:%s' % (self.__class__.__name__, self.alias))
-        self.state['running'] = False
-
-    
     # Properties
     @property
     def name(self):
         return self.__class__.__name__.lower().replace('actor', '')
+
+    @property
+    def is_active(self):
+        return self.state.running
+        # return all(self.state['status'].values())
     
-    @property
-    def web_label(self):
-        return ''
-
-    @property
-    def web_menu(self):
-        return []
-
 
 
     # Class: Callbacks

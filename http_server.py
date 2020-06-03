@@ -40,6 +40,7 @@ class HttpServer(web.Application):
 
         # Actor static files
         # --------------------
+        """
         self.actor_static = []
 
         logger.info('Loading actor static files')
@@ -52,6 +53,7 @@ class HttpServer(web.Application):
                 logger.debug('> %s for %s' % (file_name, actor.name))
 
         logger.info('Found %d actor static files' % (len(self.actor_static)))
+        """
 
         # Routes
         # --------------------
@@ -63,8 +65,9 @@ class HttpServer(web.Application):
             web.get('/', self.index),
             web.get('/status/', self.status),
             web.get('/status/backlog/', self.backlog),
-            web.get('/event/{source}/{name}', self.event),
-            web.get('/static/actor/{name}.js', self.actor),
+            # web.get('/event/{source}/{name}', self.event),
+            web.get('/event/{name}', self.event),
+            # web.get('/static/actor/{name}.js', self.actor),
         ])
 
         self.router.add_static('/static', './static')
@@ -90,7 +93,7 @@ class HttpServer(web.Application):
     async def index(self, request):
         # return web.Response(body=open('static/index.html').read().encode('UTF-8'), content_type='text/html')
         return {
-            'actors': []
+            # 'actors': []
         }
 
 
@@ -112,17 +115,30 @@ class HttpServer(web.Application):
 
     # Route: Event
     async def event(self, request):
+        print("="*100)
+        print(request)
+        print(request.protocol)
+        print(request.url)
+        print(request.transport)
+        print(request.remote)
+        print(request.scheme)
+        print(dir(request))
+        print("="*100)
+
         # Queue event
         self.context.queue_event(**{
-            'source': request.match_info['source'], 
+            # 'source': request.match_info['source'], 
+            'source': 'http', 
             'name': request.match_info['name'],
-            'payload': {}
+            'payload': {},
+            'client': request.remote,
         })
 
         # Response
         return web.Response(**{
             'body': json.dumps({
-                'source': request.match_info['source'],
+                # 'source': request.match_info['source'],
+                'source': 'http',
                 'name': request.match_info['name']
             }).encode('UTF-8'), 
             'headers': {'Content-Type': 'application/json'}
@@ -130,6 +146,7 @@ class HttpServer(web.Application):
 
 
     # Route: Actor static
+    """
     async def actor(self, request):
         file_name = '%s.js' % (request.match_info['name'])
 
@@ -140,3 +157,4 @@ class HttpServer(web.Application):
             raise web.HTTPNotFound()
 
         return web.FileResponse(os.path.join(self.context.base_dir, 'actors', file_name))
+    """

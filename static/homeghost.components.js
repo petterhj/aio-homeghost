@@ -5,7 +5,7 @@ Vue.component('event', {
         <div class="event" :class="{dim: event.actions.length == 0}">
          <h1>
           <i class="zmdi zmdi-flash"></i>
-          {{event.source}}.{{event.name}} [{{event.actions.length}}] {{event.payload}}
+          <b>{{event.source}}</b>.{{event.name}} [actions={{event.actions.length}}] [{{event.client}}] {{event.payload}}
           <span class="timestamp">{{event.created_timestamp|moment("YYYY-MM-DD, HH:mm:ss")}}</span>
          </h1>
 
@@ -45,16 +45,17 @@ Vue.component('actor', {
         <div class="actor-wrapper">
          <div class="actor" 
            @click="$emit('actor-select')"
-           :class="[actor.actor.toLowerCase(), {
-             active: isActive
-           }]">
+           :class="[
+                actor.name.toLowerCase(), 
+                {active: isActive},
+                {focused: isFocused}
+            ]">
           <h1>{{actor.alias}}</h1>
-          <span>{{actor.web.label}}</span>
+          <span>{{actor.name}}: {{stateLabel}}</span>
          </div>
 
          <div :class="" class="dropdown">
-          <ul>
-           <li v-for="item in actor.web.menu">
+           <li v-for="item in exportedEvents">
             <div class="actor-event" @click="selectEvent(item.event)">
              <i class="zmdi" :class="getEventIcon(item)"></i> {{item.label}}
             </div>
@@ -63,16 +64,53 @@ Vue.component('actor', {
          </div>
         </div>
     `,
-    props: ['actor', 'isActive'],
+    props: ['actor', 'isFocused'],
+    computed: {
+        metadata: function() {
+            return this.actor.metadata;
+        },
+        isActive: function() {
+            // if (this.metadata.state_active && this.metadata.state_active.length > 0) {    
+            //     let obj = this.actor;
+            //     this.metadata.state_active.forEach(function(state) {
+            //         console.log(state)
+            //         let arr = state.split('.');
+            //         while (arr.length && (obj = obj[arr.shift()]));
+            //         console.log(obj)
+            //         if (!obj) {
+            //             return false;
+            //         }
+            //     });
+            //     return true;
+            // }
+            return this.actor.state.running;
+        },
+        exportedEvents: function() {
+            if (this.metadata && this.metadata.web && this.metadata.web.exported_events) {
+                console.log(this.metadata.web.exported_events)
+                return this.metadata.web.exported_events;
+            }
+            return [];
+        },
+        stateLabel: function() {
+            if (this.metadata && this.metadata.web && this.metadata.web.state_label) {
+                let obj = this.actor;
+                let arr = this.metadata.web.state_label.split('.');
+                while (arr.length && (obj = obj[arr.shift()]));
+                return obj;
+            }
+            return (this.actor.state.running ? "Active" : "Not active");
+        }
+    },
     methods: {
         selectEvent: function(event_name) {
             // this.$emit('event', event_name);
             console.log('EMIT', event_name)
-            // this.$socket.emit('event', {
-            //     event: event_name
-            //     // source: 'tellstick',
-            //     // name: 'on.button'
-            // });
+            this.$socket.emit('event', {
+                name: event_name
+                // source: 'tellstick',
+                // name: 'on.button'
+            });
 
             this.$emit('click-inside');
         },
@@ -82,9 +120,6 @@ Vue.component('actor', {
     }
 });
 
-/*
-@click=""
-*/
 
 Vue.component('actors', {
     template: `
@@ -93,7 +128,7 @@ Vue.component('actors', {
           <li v-for="actor in instances">
            <actor 
              :actor="actor"
-             :is-active="(activeActor == actor.alias)" 
+             :is-focused="(focusedActor == actor.alias)" 
              @actor-select="toggleDropdown(actor)"
              @click-inside="hideDropdown" />
           </li>
@@ -102,20 +137,20 @@ Vue.component('actors', {
     props: ['instances'],
     data() { 
         return {
-            activeActor: '',
+            focusedActor: '',
         }; 
     },
     methods: {
         hideDropdown: function() {
-            this.activeActor = '';
+            this.focusedActor = '';
             console.log('!!!!!!!!')
         },
         toggleDropdown: function(actor) {
             // console.log('TD', actor)
-            if (this.activeActor && this.activeActor == actor.alias) {
-                this.activeActor = '';
+            if (this.focusedActor && this.focusedActor == actor.alias) {
+                this.focusedActor = '';
             } else {
-                this.activeActor = actor.alias;
+                this.focusedActor = actor.alias;
             }
         }
     }

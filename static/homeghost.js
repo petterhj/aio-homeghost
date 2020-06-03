@@ -63,7 +63,15 @@ const store = new Vuex.Store({
                     }
                 });
             });
-        }
+        },
+        SOCKET_STATE: (state, update) => {
+            console.log('State update received', update);
+            state.actors.forEach(function(actor) {
+                if (actor.name == update.name && actor.alias == update.alias) {
+                    actor.state[update.state.prop] = update.state.value;
+                }
+            });
+        },
     },
     actions: {
         // clearRequestsLog({commit}) {

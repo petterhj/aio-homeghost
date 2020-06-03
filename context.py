@@ -2,6 +2,7 @@
 import os
 import logging
 import collections
+from dataclasses import asdict
 
 
 logger = logging.getLogger('homeghost.' + __name__)
@@ -17,11 +18,13 @@ class Context(object):
         self.actors = []
         self.events = collections.deque()
         self.results = collections.deque()
+        self.state_updates = collections.deque()
         self.backlog = []
-        # self.actions = collections.deque()
         self.http_server = None
         self.socket_server = None
+        self.socket_clients = {}
         self.loop = None
+        self.running = False
 
 
     # Get actor
@@ -32,9 +35,9 @@ class Context(object):
                 
 
     # Queue event
-    def queue_event(self, source, name, payload={}):
+    def queue_event(self, source, name, payload={}, client=None):
         logger.info('Queing %s.%s event for processing' % (source, name))
-        self.events.append((source, name, payload))
+        self.events.append((source, name, payload, client))
 
 
     # Property: Macros
@@ -47,21 +50,18 @@ class Context(object):
     @property
     def status(self):
         return {
-            # 'config': self.config,
+            'core': {
+                'running': self.running,
+            },
             'actors': [{
-                'actor': actor.name,
+                'name': actor.name,
                 'alias': actor.alias,
                 'config': actor.config,
-                'state': actor.state,
-                # 'web': actor.web,
-                'web': {
-                    'label': actor.web_label,
-                    'menu': actor.web_menu,
-                },
-                'data': actor.data
+                'metadata': actor.metadata,
+                'state': actor.state.to_dict(),
+                'is_active': actor.is_active,
             } for actor in self.actors],
             'backlog': [dict(e) for e in self.backlog],
             'macros': self.macros,
+            'clients': self.socket_clients,
         }
-    
-    

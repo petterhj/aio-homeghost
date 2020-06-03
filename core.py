@@ -26,7 +26,6 @@ class Core(object):
 
         # Context
         self.loop = None
-        self.running = False
         self.context = Context()
         self.context.config = config
 
@@ -46,18 +45,13 @@ class Core(object):
         logger.info('Registering {0} actor instances'.format(
             len(self.context.config['actors'])
         ))
-
+        
         self.context.actors = list(map(
             lambda a: a['class'](a, self.context), self.context.config['actors']
         ))
 
         # Message processor
         self.futures.append(asyncio.ensure_future(self.events_processor()))
-
-        # Actors
-        for actor in self.context.actors:
-            actor_loop = asyncio.ensure_future(actor.loop())
-            self.futures.append(actor_loop)
 
         try:
             # Servers
@@ -74,17 +68,14 @@ class Core(object):
 
             # Run the event loop
             logger.info('Running core event loop')
-            self.running = True
+            self.context.running = True
             self.loop.run_forever()
 
 
         finally:
             # Stop event loop
-            self.running = False
+            self.context.running = False
 
-            # for actor in self.context.actors:
-            #     self.do_async(actor.stop)
-            
             asyncio.wait(self.futures, loop=self.loop)
 
             self.loop.close()
@@ -92,18 +83,18 @@ class Core(object):
 
     # Events processor
     async def events_processor(self):
-        while self.running:
+        while self.context.running:
             # Process events
             if self.context.events:
                 # Process event
-                source, name, payload = self.context.events.popleft()
+                source, name, payload, client = self.context.events.popleft()
 
                 logger.info('Event received: %s.%s, %s' % (
                     source, name, str(payload)
                 ))
 
                 try:
-                    event = Event(self.context, source, name, payload)
+                    event = Event(self.context, source, name, payload, client)
 
                 except:
                     logger.exception('Could not create event %s.%s' % (
@@ -140,6 +131,12 @@ class Core(object):
                 result = self.context.results.popleft()
 
                 await self.context.socket_server.emit('result', result)
+
+            # Process state updates
+            if self.context.state_updates:
+                update = self.context.state_updates.popleft()
+
+                await self.context.socket_server.emit('state', update)
 
             await asyncio.sleep(0.01)
 
