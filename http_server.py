@@ -115,32 +115,22 @@ class HttpServer(web.Application):
 
     # Route: Event
     async def event(self, request):
-        print("="*100)
-        print(request)
-        print(request.protocol)
-        print(request.url)
-        print(request.transport)
-        print(request.remote)
-        print(request.scheme)
-        print(dir(request))
-        print("="*100)
-
+        logger.debug('Event endpoint request: %s' % (request.url))
+        
         # Queue event
-        self.context.queue_event(**{
+        event = {
             # 'source': request.match_info['source'], 
             'source': 'http', 
             'name': request.match_info['name'],
-            'payload': {},
+            'payload': dict(request.query),
             'client': request.remote,
-        })
+        }
+
+        self.context.queue_event(**event)
 
         # Response
         return web.Response(**{
-            'body': json.dumps({
-                # 'source': request.match_info['source'],
-                'source': 'http',
-                'name': request.match_info['name']
-            }).encode('UTF-8'), 
+            'body': json.dumps(event).encode('UTF-8'), 
             'headers': {'Content-Type': 'application/json'}
         })
 
