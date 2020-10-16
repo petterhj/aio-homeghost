@@ -45,8 +45,23 @@ config = {
             # ('tellstick', 'dim', 203, 50),
             # ('tellstick', 'off', 103),
         ]},
+        {'events': ['socket.light.1.on'], 'actions': [
+            ('tellstick', 'dim', 101, '{{brightness}}'), # Stue: Tak
+            ('tellstick', 'dim', 102, '{{brightness}}'), # Stue: Vindu
+            ('tellstick', 'dim', 104, '{{brightness}}'), # Stue: Pult
+        ]},
+        {'events': ['socket.light.1.off'], 'actions': [
+            ('tellstick', 'off', 101),
+            ('tellstick', 'off', 102),
+            ('tellstick', 'off', 103),
+            ('tellstick', 'off', 104),
+        ]},
         {'events': ['socket.harmony.web.mute'], 'actions': [
             ('harmony', 'command', 45627581, 'Mute'),
+            # ('harmony', 'command', 45627582, 'Play'),
+        ]},
+        {'events': ['http.harmony.command'], 'actions': [
+            ('harmony', 'command', '{{device}}', '{{command}}'),
             # ('harmony', 'command', 45627582, 'Play'),
         ]},
         {'events': ['http.iamhome', 'tellstick.on.button'], 'actions': [
@@ -56,6 +71,9 @@ config = {
         {'events': ['tellstick.off.button', 'web.off'], 'actions': [
             ('harmony', 'start_activity', -1),
             ('tellstick', 'all_off', [999]),
+        ]},
+        {'events': ['http.chromecastaudio'], 'actions': [
+            ('harmony', 'start_activity', 27000842),
         ]},
     ]
 }

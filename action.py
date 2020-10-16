@@ -1,9 +1,8 @@
 # Imports
+import re
 import uuid
 import time
-import json
 import asyncio
-import functools
 
 from logger import logger
 from context import Context
@@ -25,7 +24,6 @@ class Message:
         else:
             return value
 
-
     # Iter
     def __iter__(self):
         properties = self.__dict__
@@ -45,10 +43,8 @@ class Message:
                 yield (attr, self.encode(value))
 
 
-
 # Class: Event
 class Event(Message):
-# class Event:
     class Serializer:
         exclude_attrs = []
 
@@ -65,7 +61,6 @@ class Event(Message):
         self.created_timestamp = int(time.time())
 
         self.actions = self.get_actions()
-
 
     # Get actions
     def get_actions(self):
@@ -85,7 +80,7 @@ class Event(Message):
             actor = self.context.get_actor(action[0])
             method = actor.get_method(action[1])
 
-            args = action[2:]
+            args = self.inject_payload(action[2:])
             is_coroutine = asyncio.iscoroutinefunction(method)
             action_type = AsyncAction if is_coroutine else Action
 
@@ -98,6 +93,20 @@ class Event(Message):
         logger.debug('Found %d actions' % (len(actions)))
 
         return actions
+
+    # Inject event payload
+    def inject_payload(self, args):
+        processed_args = []
+
+        for arg in args:
+            match = re.match(r'^\{\{([A-Za-z0-9]+)\}\}$', str(arg))
+            if match:
+                processed_args.append(self.payload[match.group(1)])
+                logger.debug("Injecting event payload: %s = %s" % (arg, self.payload[match.group(1)]))
+            else:
+                processed_args.append(arg)
+
+        return processed_args
 
 
 

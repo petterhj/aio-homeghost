@@ -190,6 +190,11 @@ class HarmonyActor(AbstractActor):
 
         # Command
         async def command(self, device_id, command, delay=0):
+            device_id = str(device_id)
+
+            if device_id not in self.actor.devices:
+                return False, 'Unknown device id (%s)' % (device_id)
+
             try:
                 cmd = SendCommandDevice(device_id, command, delay)
 
@@ -204,6 +209,6 @@ class HarmonyActor(AbstractActor):
             except:
                 logger.exception('!!!!!!!'*100)
 
-            return True, 'Command %s sent to %s (%d)' % (
-                command, self.actor.devices[str(device_id)], device_id
+            return True, 'Command %s sent to %s (%s)' % (
+                command, self.actor.devices[device_id], device_id
             )
