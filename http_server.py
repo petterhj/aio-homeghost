@@ -20,7 +20,7 @@ class HttpServer(web.Application):
         # Context
         self.context = context
         config = self.context.config['server']
-        
+
         logger.info('Configuring web server, host={0}, port={1}'.format(
             config['host'], config['port']
         ))
@@ -57,8 +57,8 @@ class HttpServer(web.Application):
 
         # Routes
         # --------------------
-        # Internally routes are served by Application.router (UrlDispatcher 
-        # instance). The router is a list of resources, entries in the route 
+        # Internally routes are served by Application.router (UrlDispatcher
+        # instance). The router is a list of resources, entries in the route
         # table which corresponds to requested URL.
 
         self.add_routes([
@@ -66,12 +66,12 @@ class HttpServer(web.Application):
             web.get('/status/', self.status),
             web.get('/status/backlog/', self.backlog),
             # web.get('/event/{source}/{name}', self.event),
-            web.get('/event/{name}', self.event),
+            # web.get('/event/{name}', self.event),
+            web.post('/event/{name}', self.event),
             # web.get('/static/actor/{name}.js', self.actor),
         ])
 
         self.router.add_static('/static', './static')
-
 
         # Handler
         # --------------------
@@ -80,14 +80,16 @@ class HttpServer(web.Application):
 
         # Server
         # --------------------
-        # Create a TCP server (socket type SOCK_STREAM) listening on port 
+        # Create a TCP server (socket type SOCK_STREAM) listening on port
         # of the host address. Returns a Server object.
-        server = self.context.loop.create_server(handler, 
-            host=config['host'], port=config['port'])
+        server = self.context.loop.create_server(
+            handler,
+            host=config['host'],
+            port=config['port']
+        )
 
         return server
 
-    
     # Route: Index
     @aiohttp_jinja2.template('index.html')
     async def index(self, request):
@@ -96,7 +98,6 @@ class HttpServer(web.Application):
             # 'actors': []
         }
 
-
     # Route: Status
     async def status(self, request):
         return web.Response(**{
@@ -104,25 +105,30 @@ class HttpServer(web.Application):
             'headers': {'Content-Type': 'application/json'}
         })
 
-
     # Route: Backlog
     async def backlog(self, request):
         return web.Response(**{
-            'body': json.dumps([dict(e) for e in self.context.backlog]).encode('UTF-8'), 
+            'body': json.dumps(
+                [dict(e) for e in self.context.backlog]
+            ).encode('UTF-8'),
             'headers': {'Content-Type': 'application/json'}
         })
-
 
     # Route: Event
     async def event(self, request):
         logger.debug('Event endpoint request: %s' % (request.url))
-        
+
+        request_data = await request.json()
+
+        # logger.info(request_data)
+
         # Queue event
         event = {
-            # 'source': request.match_info['source'], 
-            'source': 'http', 
+            # 'source': request.match_info['source'],
+            'source': 'http',
             'name': request.match_info['name'],
-            'payload': dict(request.query),
+            # 'payload': dict(request.query),
+            'payload': request_data,
             'client': request.remote,
         }
 
@@ -133,7 +139,6 @@ class HttpServer(web.Application):
             'body': json.dumps(event).encode('UTF-8'), 
             'headers': {'Content-Type': 'application/json'}
         })
-
 
     # Route: Actor static
     """
@@ -146,5 +151,7 @@ class HttpServer(web.Application):
             ))
             raise web.HTTPNotFound()
 
-        return web.FileResponse(os.path.join(self.context.base_dir, 'actors', file_name))
+        return web.FileResponse(
+            os.path.join(self.context.base_dir, 'actors', file_name)
+        )
     """

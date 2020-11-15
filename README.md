@@ -20,10 +20,13 @@ Example of configured "macro":
 }
 ```
 
-**Endpoint**: `GET /event/<event_name>`
+**Endpoint**: `POST /event/<event_name>`
 
 ```sh
-$ curl -X GET http://192.168.1.7:8880/event/harmony.command?device=45627581&command=Mute
+curl --header "Content-Type: application/json" \
+     --request POST \
+     --data '{"device":"12345678","command":"Mute"}' \
+     http://<host>:<port>/event/harmony.command
 ```
 
 ```json
@@ -31,7 +34,8 @@ $ curl -X GET http://192.168.1.7:8880/event/harmony.command?device=45627581&comm
     "source": "http", 
     "name": "harmony.command", 
     "payload": {
-        "device": "45627581"
+        "device": "12345678",
+        "command": "Mute",
     }, 
     "client": "192.168.1.10"
 }
